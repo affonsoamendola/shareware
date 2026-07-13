@@ -1,0 +1,7 @@
+How to Run Your Session Effectively According to Google AI
+
+1. Keep DeepSeek V4 Flash as your baselineKeep opencode-go/deepseek-v4-flash active for 80% of your session. It costs next to nothing against your 5-hour window limit, features a massive 1.0M context window, and functions with incredibly low latency.
+
+2. Swap to MiniMax M3 for active feature implementationWhen you need to write full logic modules or generate continuous tests, toggle over to opencode-go/minimax-m3. It punches way above its price class—frequently nearing frontier model benchmarks on SWE-bench—while remaining incredibly budget-friendly.
+
+3. Reserve Qwen3.7 Max or GLM-5.2 strictly for blockagesOnly switch your target configuration to opencode-go/qwen3.7-max or opencode-go/glm-5.2 when you hit a wall. These models possess elite intelligence profiles but have high per-token pricing that can rapidly chip away at your rolling caps.

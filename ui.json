@@ -1,0 +1,116 @@
+{
+    "initial_screen": "main_menu",
+    "screens": {
+        "main_menu": {
+            "background": [30, 30, 50, 255],
+            "widgets": [
+                {
+                    "type": "label",
+                    "text": "MY GAME",
+                    "x": 320,
+                    "y": 50,
+                    "font_size": 48,
+                    "text_color": [255, 255, 255, 255]
+                },
+                {
+                    "type": "button",
+                    "text": "Play",
+                    "x": 300,
+                    "y": 180,
+                    "width": 200,
+                    "height": 50,
+                    "action": "goto:game",
+                    "color": [40, 160, 40, 255],
+                    "hover_color": [50, 200, 50, 255],
+                    "pressed_color": [30, 120, 30, 255]
+                },
+                {
+                    "type": "button",
+                    "text": "Settings",
+                    "x": 300,
+                    "y": 250,
+                    "width": 200,
+                    "height": 50,
+                    "action": "goto:settings",
+                    "color": [60, 60, 160, 255],
+                    "hover_color": [80, 80, 200, 255],
+                    "pressed_color": [40, 40, 120, 255]
+                },
+                {
+                    "type": "button",
+                    "text": "Quit",
+                    "x": 300,
+                    "y": 320,
+                    "width": 200,
+                    "height": 50,
+                    "action": "quit",
+                    "color": [160, 40, 40, 255],
+                    "hover_color": [200, 50, 50, 255],
+                    "pressed_color": [120, 30, 30, 255]
+                }
+            ]
+        },
+        "game": {
+            "background": [20, 60, 20, 255],
+            "widgets": [
+                {
+                    "type": "label",
+                    "text": "GAMEPLAY",
+                    "x": 310,
+                    "y": 30,
+                    "font_size": 36,
+                    "text_color": [255, 255, 255, 255]
+                },
+                {
+                    "type": "button",
+                    "text": "Pause",
+                    "x": 50,
+                    "y": 380,
+                    "width": 150,
+                    "height": 40,
+                    "action": "pause"
+                },
+                {
+                    "type": "button",
+                    "text": "Back to Menu",
+                    "x": 580,
+                    "y": 380,
+                    "width": 170,
+                    "height": 40,
+                    "action": "goto:main_menu"
+                }
+            ]
+        },
+        "settings": {
+            "background": [50, 40, 60, 255],
+            "widgets": [
+                {
+                    "type": "label",
+                    "text": "SETTINGS",
+                    "x": 310,
+                    "y": 30,
+                    "font_size": 36,
+                    "text_color": [255, 255, 255, 255]
+                },
+                {
+                    "type": "button",
+                    "text": "Toggle Fullscreen",
+                    "x": 300,
+                    "y": 180,
+                    "width": 200,
+                    "height": 50,
+                    "action": "toggle_fullscreen"
+                },
+                {
+                    "type": "button",
+                    "text": "Back",
+                    "x": 300,
+                    "y": 260,
+                    "width": 200,
+                    "height": 50,
+                    "action": "goto:main_menu"
+                }
+            ]
+        }
+    }
+}
