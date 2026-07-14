@@ -248,6 +248,18 @@ void UIEditor::colorPicker(const char* label, int& r, int& g, int& b, int& a, in
     positionY = row2Y + 20;
 }
 
+float UIEditor::beginPropPanelScroll(float x, float y, float w, float h)
+{
+    BeginScissorMode(static_cast<int>(x), static_cast<int>(y),
+                     static_cast<int>(w), static_cast<int>(h));
+    return y - propPanelScroll;
+}
+
+void UIEditor::endPropPanelScroll()
+{
+    EndScissorMode();
+}
+
 void UIEditor::drawPropertyPanel()
 {
     float screenH = static_cast<float>(GetVirtualScreenHeight());
@@ -269,7 +281,7 @@ void UIEditor::drawPropertyPanel()
         Screen* screen = getCurrentScreen();
         if (screen)
         {
-            float py = TOOLBAR_H + 80;
+            float py = beginPropPanelScroll(x, TOOLBAR_H, PROP_PANEL_W, canvasH) + 80;
             float lx = x + 8;
             float iw = PROP_PANEL_W - 65;
 
@@ -379,17 +391,20 @@ void UIEditor::drawPropertyPanel()
                 }
                 py += 20;
             }
+            propPanelContentH = py - TOOLBAR_H + propPanelScroll;
+        }
+        else
+        {
+            propPanelContentH = 80.0f;
         }
 
+        endPropPanelScroll();
         return;
     }
 
-    BeginScissorMode(static_cast<int>(x), static_cast<int>(TOOLBAR_H),
-                     static_cast<int>(PROP_PANEL_W), static_cast<int>(canvasH));
+    DrawText("PROPERTIES", static_cast<int>(x + 10), static_cast<int>(TOOLBAR_H + 10), 12, LIGHTGRAY);
 
-    float py = TOOLBAR_H + 30 - propPanelScroll;
-    DrawText("PROPERTIES", static_cast<int>(x + 10), static_cast<int>(py), 12, LIGHTGRAY);
-    py += 20;
+    float py = beginPropPanelScroll(x, TOOLBAR_H, PROP_PANEL_W, canvasH) + 30;
     float lx = x + 8;
     float vx = x + 55;
     float iw = PROP_PANEL_W - 65;
@@ -888,8 +903,10 @@ void UIEditor::drawPropertyPanel()
     {
         deleteSelectedWidget();
     }
+    py += 28;
 
-    EndScissorMode();
+    propPanelContentH = py - TOOLBAR_H + propPanelScroll;
+    endPropPanelScroll();
 }
 
 void UIEditor::drawImageViewerProperties(float& positionY, float labelX, float inputWidth)

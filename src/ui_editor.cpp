@@ -794,7 +794,8 @@ void UIEditor::update(float dt)
 
         if (mousePos.x < SIDEBAR_W && mousePos.y > TOOLBAR_H)
         {
-    float contentH = 30.0f + uiManager.getScreens().size() * 28.0f + 130.0f;
+            float contentH = screenListContentH;
+            if (contentH < 30.0f) contentH = 30.0f;
             float visibleH = screenH - TOOLBAR_H;
             float maxScroll = (contentH > visibleH) ? (contentH - visibleH) : 0.0f;
             screenListScroll += delta;
@@ -803,38 +804,8 @@ void UIEditor::update(float dt)
         }
         else if (mousePos.x > screenW - PROP_PANEL_W && mousePos.y > TOOLBAR_H)
         {
-            Widget* selectedWidget = getSelectedWidget();
-            float contentH = 120.0f;
-            if (selectedWidget)
-            {
-                if (selectedWidget->getType() == WidgetType::Button)
-                {
-                    contentH += 38.0f + 14.0f + 74.0f * 4;
-                    if (actionTypeIndex == 0 || actionTypeIndex == 4 || actionTypeIndex == 5)
-                        contentH += 24.0f;
-                    if (actionTypeIndex == 0)
-                        contentH += 12.0f + uiManager.getScreens().size() * 18.0f;
-                    contentH += 64.0f;
-                }
-                else if (selectedWidget->getType() == WidgetType::Image)
-                {
-                    contentH += 60.0f + 20.0f + 74.0f + 80.0f;
-                }
-                else if (selectedWidget->getType() == WidgetType::ImageViewer)
-                {
-                    ImageViewer* iv = static_cast<ImageViewer*>(selectedWidget);
-                    contentH += 60.0f + 20.0f + 74.0f + 80.0f + (float)iv->images.size() * 18.0f;
-                }
-                else if (selectedWidget->getType() == WidgetType::RichTextBox)
-                {
-                    contentH += 74.0f + 80.0f + 84.0f;
-                }
-                else
-                {
-                    contentH += 74.0f;
-                }
-                contentH += 38.0f;
-            }
+            float contentH = propPanelContentH;
+            if (contentH < 80.0f) contentH = 80.0f;
             float visibleH = screenH - TOOLBAR_H;
             float maxScroll = (contentH > visibleH) ? (contentH - visibleH) : 0.0f;
             propPanelScroll += delta;
@@ -1082,8 +1053,7 @@ void UIEditor::drawScreenList()
 
     DrawText("SCREENS", 10, static_cast<int>(TOOLBAR_H + 10), 12, LIGHTGRAY);
 
-    float contentH = 30.0f + uiManager.getScreens().size() * 28.0f + 66.0f;
-    float maxScroll = (contentH > canvasH) ? (contentH - canvasH) : 0.0f;
+    float maxScroll = (screenListContentH > canvasH) ? (screenListContentH - canvasH) : 0.0f;
     if (screenListScroll > maxScroll) screenListScroll = maxScroll;
     if (screenListScroll < 0.0f) screenListScroll = 0.0f;
 
@@ -1171,10 +1141,10 @@ void UIEditor::drawScreenList()
         }
     }
 
+    screenListContentH = y - TOOLBAR_H + screenListScroll;
+
     EndScissorMode();
 }
-
-
 void UIEditor::drawCanvas()
 {
     float canvasW = static_cast<float>(GetVirtualScreenWidth());

@@ -171,7 +171,9 @@ private:
 
     // Scroll offsets for panels
     float screenListScroll = 0.0f;
+    float screenListContentH = 0.0f;
     float propPanelScroll = 0.0f;
+    float propPanelContentH = 0.0f;
     float fontListScroll = 0.0f;
 
     // Methods
@@ -200,6 +202,9 @@ private:
     bool sliderF(Rectangle rec, const char* label, float* value, float minVal, float maxVal);
     bool textBox(Rectangle rec, char* buf, int bufSize, int& len, bool active, bool multiline = false);
     void colorPicker(const char* label, int& r, int& g, int& b, int& a, int id, float& py);
+
+    float beginPropPanelScroll(float x, float y, float w, float h);
+    void endPropPanelScroll();
 
     int textBoxClickPos(Rectangle rec, const char* buf, int len, Vector2 mouse, bool multiline);
     int textBoxCursorLine(const char* buf, int pos);
