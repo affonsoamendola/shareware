@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include <nlohmann/json.hpp>
 #include <string>
+#include <vector>
 #include <functional>
 #include "rich_text.hpp"
 
@@ -11,6 +12,19 @@ using json = nlohmann::json;
 class FontManager;
 
 enum class ImageFit { Stretch, Contain, Cover };
+
+struct FrameAnimation
+{
+    std::vector<std::string> framePaths;
+    std::vector<Texture2D> textures;
+    float frameDuration = 0.1f;
+    bool loop = true;
+    bool loaded = false;
+
+    void load();
+    void unload();
+    bool hasContent() const { return !framePaths.empty(); }
+};
 
 enum class WidgetType 
 {
@@ -30,6 +44,7 @@ public:
 
     virtual void update(float dt);
     virtual void draw(FontManager& fonts);
+    virtual void drawOverlay(FontManager& fonts) {}
 
     virtual bool isClicked();
     virtual bool isHovered();
@@ -80,7 +95,21 @@ public:
     void draw(FontManager& fonts) override;
     json toJson() const override;
 
+    void setIdleAnimation(const std::vector<std::string>& paths, float duration, bool loop);
+    void setHoverAnimation(const std::vector<std::string>& paths, float duration, bool loop);
+    void setClickAnimation(const std::vector<std::string>& paths, float duration, bool loop);
+    void unloadAnimations();
+
     Color current_color = DARKBLUE;
+
+    FrameAnimation idleAnim;
+    FrameAnimation hoverAnim;
+    FrameAnimation clickAnim;
+
+    int animFrame = 0;
+    float animTimer = 0.0f;
+    enum class AnimState { Idle, Hover, Click };
+    AnimState animState = AnimState::Idle;
 };
 
 class Label : public Widget 
@@ -106,12 +135,17 @@ public:
     json toJson() const override;
 
     void setImagePath(const std::string& path);
+    void setAnimation(const std::vector<std::string>& paths, float duration, bool loop);
 
     std::string imagePath;
     Color tint = WHITE;
     ImageFit fit = ImageFit::Stretch;
     Texture2D texture = {};
     bool textureLoaded = false;
+
+    FrameAnimation anim;
+    int animFrame = 0;
+    float animTimer = 0.0f;
 };
 
 struct ImageViewerImage
@@ -134,6 +168,7 @@ public:
 
     void addImage(const std::string& path);
     void removeImage(int index);
+    void replaceImage(int index, const std::string& newPath);
     void clearImages();
     void setCurrentIndex(int index);
 

@@ -197,6 +197,17 @@ void UIEditor::syncPropsFromSelected()
         editPressG = widget->pressed_color.g;
         editPressB = widget->pressed_color.b;
         editPressA = widget->pressed_color.a;
+
+        Button* btn = static_cast<Button*>(widget);
+        idleAnimFramePaths = btn->idleAnim.framePaths;
+        idleAnimFrameDuration = btn->idleAnim.frameDuration;
+        idleAnimLoop = btn->idleAnim.loop;
+        hoverAnimFramePaths = btn->hoverAnim.framePaths;
+        hoverAnimFrameDuration = btn->hoverAnim.frameDuration;
+        hoverAnimLoop = btn->hoverAnim.loop;
+        clickAnimFramePaths = btn->clickAnim.framePaths;
+        clickAnimFrameDuration = btn->clickAnim.frameDuration;
+        clickAnimLoop = btn->clickAnim.loop;
     }
 
     if (widget->getType() == WidgetType::Image)
@@ -210,6 +221,9 @@ void UIEditor::syncPropsFromSelected()
         editTintB = imgWidget->tint.b;
         editTintA = imgWidget->tint.a;
         editFitIndex = static_cast<int>(imgWidget->fit);
+        imgAnimFramePaths = imgWidget->anim.framePaths;
+        imgAnimFrameDuration = imgWidget->anim.frameDuration;
+        imgAnimLoop = imgWidget->anim.loop;
     }
 
     if (widget->getType() == WidgetType::RichTextBox)
@@ -277,6 +291,26 @@ void UIEditor::applyPropsToSelected()
             case 5: widget->action = actionBuf; break;
             default: widget->action = ""; break;
         }
+
+        Button* btn = static_cast<Button*>(widget);
+        if (btn->idleAnim.framePaths != idleAnimFramePaths ||
+            btn->idleAnim.frameDuration != idleAnimFrameDuration ||
+            btn->idleAnim.loop != idleAnimLoop)
+        {
+            btn->setIdleAnimation(idleAnimFramePaths, idleAnimFrameDuration, idleAnimLoop);
+        }
+        if (btn->hoverAnim.framePaths != hoverAnimFramePaths ||
+            btn->hoverAnim.frameDuration != hoverAnimFrameDuration ||
+            btn->hoverAnim.loop != hoverAnimLoop)
+        {
+            btn->setHoverAnimation(hoverAnimFramePaths, hoverAnimFrameDuration, hoverAnimLoop);
+        }
+        if (btn->clickAnim.framePaths != clickAnimFramePaths ||
+            btn->clickAnim.frameDuration != clickAnimFrameDuration ||
+            btn->clickAnim.loop != clickAnimLoop)
+        {
+            btn->setClickAnimation(clickAnimFramePaths, clickAnimFrameDuration, clickAnimLoop);
+        }
     }
 
     if (widget->getType() == WidgetType::Image)
@@ -286,6 +320,13 @@ void UIEditor::applyPropsToSelected()
             imgWidget->setImagePath(imgPathBuf);
         imgWidget->tint = colorToEdit(editTintR, editTintG, editTintB, editTintA);
         imgWidget->fit = static_cast<ImageFit>(editFitIndex);
+
+        if (imgWidget->anim.framePaths != imgAnimFramePaths ||
+            imgWidget->anim.frameDuration != imgAnimFrameDuration ||
+            imgWidget->anim.loop != imgAnimLoop)
+        {
+            imgWidget->setAnimation(imgAnimFramePaths, imgAnimFrameDuration, imgAnimLoop);
+        }
     }
 
     if (widget->getType() == WidgetType::RichTextBox)

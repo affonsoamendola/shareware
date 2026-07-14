@@ -43,6 +43,11 @@ void Screen::draw(FontManager& fonts)
     {
         widget->draw(fonts);
     }
+
+    for (auto& widget : widgets) 
+    {
+        widget->drawOverlay(fonts);
+    }
 }
 
 std::string Screen::getClickedAction() 

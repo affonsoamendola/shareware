@@ -598,6 +598,106 @@ void UIEditor::drawPropertyPanel()
             }
         }
         py += 20;
+
+        if (w->getType() == WidgetType::Image)
+        {
+            py += 4;
+            auto drawImgAnimSection = [&]()
+            {
+                DrawText("--- Animation ---", static_cast<int>(lx), static_cast<int>(py), 10, GRAY);
+                py += 14;
+
+                float btnW = (iw + 55) / 3 - 2;
+                if (button({lx, py, btnW, 16}, "Browse", {60, 80, 120, 255}))
+                {
+                    const char* filterPatterns[] = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tga" };
+                    const char* result = tinyfd_openFileDialog("Select Frames", "", 6, filterPatterns, "Image Files", 1);
+                    if (result)
+                    {
+                        std::string resultStr(result);
+                        size_t pos = 0;
+                        while ((pos = resultStr.find('|')) != std::string::npos)
+                        {
+                            imgAnimFramePaths.push_back(resultStr.substr(0, pos));
+                            resultStr.erase(0, pos + 1);
+                        }
+                        if (!resultStr.empty())
+                            imgAnimFramePaths.push_back(resultStr);
+                        applyPropsToSelected();
+                    }
+                }
+                if (button({lx + btnW + 2, py, btnW, 16}, "Clear", {100, 60, 60, 255}))
+                {
+                    imgAnimFramePaths.clear();
+                    applyPropsToSelected();
+                }
+                py += 18;
+
+                if (imgAnimFramePaths.empty())
+                {
+                    DrawText("(no frames)", static_cast<int>(lx), static_cast<int>(py), 8, LIGHTGRAY);
+                    py += 14;
+                }
+                else
+                {
+                    for (size_t i = 0; i < imgAnimFramePaths.size(); i++)
+                    {
+                        Rectangle r = {lx, py, iw + 55, 16};
+                        Vector2 m = GetVirtualMousePos();
+                        bool hover = CheckCollisionPointRec(m, r);
+                        Color bg = hover ? (Color){55, 55, 70, 255} : (Color){40, 40, 50, 255};
+                        DrawRectangleRec(r, bg);
+
+                        const char* fname = imgAnimFramePaths[i].c_str();
+                        const char* slash = strrchr(fname, '/');
+                        if (slash) fname = slash + 1;
+                        DrawText(fname, static_cast<int>(lx + 4), static_cast<int>(py + 3), 8, LIGHTGRAY);
+
+                        float xBtnW = 16;
+                        Rectangle xr = {lx + iw + 55 - xBtnW, py, xBtnW, 16};
+                        bool xHover = CheckCollisionPointRec(m, xr);
+                        Color xBg = xHover ? (Color){160, 50, 50, 255} : (Color){100, 40, 40, 255};
+                        DrawRectangleRec(xr, xBg);
+                        DrawText("X", static_cast<int>(xr.x + 4), static_cast<int>(py + 3), 8, WHITE);
+
+                        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && xHover)
+                        {
+                            imgAnimFramePaths.erase(imgAnimFramePaths.begin() + i);
+                            applyPropsToSelected();
+                            break;
+                        }
+                        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && hover && !xHover)
+                        {
+                            const char* filterPatterns[] = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tga" };
+                            const char* result = tinyfd_openFileDialog("Replace Frame", "", 6, filterPatterns, "Image Files", 0);
+                            if (result)
+                            {
+                                imgAnimFramePaths[i] = result;
+                                applyPropsToSelected();
+                            }
+                        }
+                        py += 18;
+                    }
+                }
+
+                int durInt = static_cast<int>(imgAnimFrameDuration * 100);
+                if (slider({lx, py, iw + 55, 16}, "Duration:", &durInt, 5, 200))
+                {
+                    imgAnimFrameDuration = durInt / 100.0f;
+                    applyPropsToSelected();
+                }
+                py += 20;
+
+                const char* loopLabel = imgAnimLoop ? "[x] Loop" : "[ ] Loop";
+                if (button({lx, py, btnW + 10, 16}, loopLabel, imgAnimLoop ? (Color){60, 100, 60, 255} : (Color){50, 50, 60, 255}))
+                {
+                    imgAnimLoop = !imgAnimLoop;
+                    applyPropsToSelected();
+                }
+                py += 22;
+            };
+            drawImgAnimSection();
+        }
     }
     else
     {
@@ -671,6 +771,118 @@ void UIEditor::drawPropertyPanel()
         }
     }
 
+    if (w->getType() == WidgetType::Button)
+    {
+        auto drawAnimSection = [&](const char* label,
+            std::vector<std::string>& paths,
+            float& duration, bool& loop)
+        {
+            DrawText(label, static_cast<int>(lx), static_cast<int>(py), 10, GRAY);
+            py += 14;
+
+            float btnW = (iw + 55) / 3 - 2;
+            if (button({lx, py, btnW, 16}, "Browse", {60, 80, 120, 255}))
+            {
+                const char* filterPatterns[] = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tga" };
+                const char* result = tinyfd_openFileDialog("Select Frames", "", 6, filterPatterns, "Image Files", 1);
+                if (result)
+                {
+                    std::string resultStr(result);
+                    size_t pos = 0;
+                    while ((pos = resultStr.find('|')) != std::string::npos)
+                    {
+                        paths.push_back(resultStr.substr(0, pos));
+                        resultStr.erase(0, pos + 1);
+                    }
+                    if (!resultStr.empty())
+                        paths.push_back(resultStr);
+                    applyPropsToSelected();
+                }
+            }
+            if (button({lx + btnW + 2, py, btnW, 16}, "Clear", {100, 60, 60, 255}))
+            {
+                paths.clear();
+                applyPropsToSelected();
+            }
+            py += 18;
+
+            if (paths.empty())
+            {
+                DrawText("(no frames)", static_cast<int>(lx), static_cast<int>(py), 8, LIGHTGRAY);
+                py += 14;
+            }
+            else
+            {
+                for (size_t i = 0; i < paths.size(); i++)
+                {
+                    Rectangle r = {lx, py, iw + 55, 16};
+                    Vector2 m = GetVirtualMousePos();
+                    bool hover = CheckCollisionPointRec(m, r);
+                    Color bg = hover ? (Color){55, 55, 70, 255} : (Color){40, 40, 50, 255};
+                    DrawRectangleRec(r, bg);
+
+                    const char* fname = paths[i].c_str();
+                    const char* slash = strrchr(fname, '/');
+                    if (slash) fname = slash + 1;
+                    DrawText(fname, static_cast<int>(lx + 4), static_cast<int>(py + 3), 8, LIGHTGRAY);
+
+                    float xBtnW = 16;
+                    Rectangle xr = {lx + iw + 55 - xBtnW, py, xBtnW, 16};
+                    bool xHover = CheckCollisionPointRec(m, xr);
+                    Color xBg = xHover ? (Color){160, 50, 50, 255} : (Color){100, 40, 40, 255};
+                    DrawRectangleRec(xr, xBg);
+                    DrawText("X", static_cast<int>(xr.x + 4), static_cast<int>(py + 3), 8, WHITE);
+
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && xHover)
+                    {
+                        paths.erase(paths.begin() + i);
+                        applyPropsToSelected();
+                        break;
+                    }
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && hover && !xHover)
+                    {
+                        const char* filterPatterns[] = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tga" };
+                        const char* result = tinyfd_openFileDialog("Replace Frame", "", 6, filterPatterns, "Image Files", 0);
+                        if (result)
+                        {
+                            paths[i] = result;
+                            applyPropsToSelected();
+                        }
+                    }
+                    py += 18;
+                }
+            }
+
+            int durInt = static_cast<int>(duration * 100);
+            if (slider({lx, py, iw + 55, 16}, "Duration:", &durInt, 5, 200))
+            {
+                duration = durInt / 100.0f;
+                applyPropsToSelected();
+            }
+            py += 20;
+
+            const char* loopLabel = loop ? "[x] Loop" : "[ ] Loop";
+            if (button({lx, py, btnW + 10, 16}, loopLabel, loop ? (Color){60, 100, 60, 255} : (Color){50, 50, 60, 255}))
+            {
+                loop = !loop;
+                applyPropsToSelected();
+            }
+            py += 22;
+        };
+
+        drawAnimSection("--- Idle Animation ---",
+            idleAnimFramePaths,
+            idleAnimFrameDuration, idleAnimLoop);
+
+        drawAnimSection("--- Hover Animation ---",
+            hoverAnimFramePaths,
+            hoverAnimFrameDuration, hoverAnimLoop);
+
+        drawAnimSection("--- Click Animation ---",
+            clickAnimFramePaths,
+            clickAnimFrameDuration, clickAnimLoop);
+    }
+
     py += 10;
     if (button({lx, py, PROP_PANEL_W - 16, 28}, "DELETE WIDGET", {140, 50, 50, 255}))
     {
@@ -725,7 +937,7 @@ void UIEditor::drawImageViewerProperties(float& positionY, float labelX, float i
     {
         bool isSelected = (i == iv->currentIndex);
         Color bg = isSelected ? (Color){60, 60, 120, 255} : (Color){40, 40, 50, 255};
-        Rectangle r = {labelX, positionY, controlW - 40, 16};
+        Rectangle r = {labelX, positionY, controlW - 78, 16};
 
         DrawRectangleRec(r, bg);
 
@@ -733,8 +945,8 @@ void UIEditor::drawImageViewerProperties(float& positionY, float labelX, float i
         size_t lastSlash = fileName.find_last_of("/\\");
         if (lastSlash != std::string::npos)
             fileName = fileName.substr(lastSlash + 1);
-        if (fileName.length() > 28)
-            fileName = fileName.substr(0, 25) + "...";
+        if (fileName.length() > 24)
+            fileName = fileName.substr(0, 21) + "...";
 
         DrawText(fileName.c_str(), static_cast<int>(labelX + 4), static_cast<int>(positionY + 3), 10, WHITE);
 
@@ -745,7 +957,18 @@ void UIEditor::drawImageViewerProperties(float& positionY, float labelX, float i
             applyPropsToSelected();
         }
 
-        if (button({labelX + controlW - 38, positionY, 18, 16}, "X", {120, 50, 50, 255}))
+        if (button({labelX + controlW - 76, positionY, 18, 16}, "~", {60, 80, 100, 255}))
+        {
+            const char* filterPatterns[] = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tga" };
+            const char* result = tinyfd_openFileDialog("Replace Image", "", 6, filterPatterns, "Image Files", 0);
+            if (result)
+            {
+                iv->replaceImage(i, result);
+                applyPropsToSelected();
+            }
+        }
+
+        if (button({labelX + controlW - 56, positionY, 18, 16}, "X", {120, 50, 50, 255}))
         {
             iv->removeImage(i);
             applyPropsToSelected();

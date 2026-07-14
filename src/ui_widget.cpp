@@ -107,7 +107,46 @@ json Widget::colorToJson(Color color)
     return {color.r, color.g, color.b, color.a};
 }
 
+// FrameAnimation
+void FrameAnimation::load()
+{
+    unload();
+    if (framePaths.empty()) return;
+
+    for (const auto& path : framePaths)
+    {
+        if (path.empty()) continue;
+        ::Image img = LoadImage(path.c_str());
+        if (img.width > 0 && img.height > 0)
+        {
+            textures.push_back(LoadTextureFromImage(img));
+            UnloadImage(img);
+        }
+    }
+    loaded = !textures.empty();
+}
+
+void FrameAnimation::unload()
+{
+    for (auto& tex : textures)
+    {
+        UnloadTexture(tex);
+    }
+    textures.clear();
+    loaded = false;
+}
+
 // Button
+static const FrameAnimation* buttonGetAnim(const Button& btn, Button::AnimState state)
+{
+    switch (state)
+    {
+        case Button::AnimState::Idle:   return &btn.idleAnim;
+        case Button::AnimState::Hover:  return &btn.hoverAnim;
+        case Button::AnimState::Click:  return &btn.clickAnim;
+    }
+    return nullptr;
+}
 Button::Button() 
 {
     type = WidgetType::Button;
@@ -127,40 +166,101 @@ void Button::update(float dt)
     Widget::update(dt);
     if (!visible || !enabled) return;
 
-    if (pressed) 
+    AnimState desiredState;
+    if (pressed) desiredState = AnimState::Click;
+    else if (hovered) desiredState = AnimState::Hover;
+    else desiredState = AnimState::Idle;
+
+    if (desiredState != animState)
     {
-        current_color = pressed_color;
-    } 
-    else if (hovered) 
-    {
-        current_color = hover_color;
-    } 
-    else 
-    {
-        current_color = normal_color;
+        animState = desiredState;
+        animFrame = 0;
+        animTimer = 0.0f;
     }
+
+    const FrameAnimation* anim = buttonGetAnim(*this, animState);
+    if (anim && anim->loaded && anim->textures.size() > 1)
+    {
+        animTimer += dt;
+        if (animTimer >= anim->frameDuration)
+        {
+            animTimer -= anim->frameDuration;
+            animFrame++;
+            int total = static_cast<int>(anim->textures.size());
+            if (animFrame >= total)
+                animFrame = anim->loop ? 0 : total - 1;
+        }
+    }
+    else
+    {
+        animFrame = 0;
+    }
+
+    if (pressed)      current_color = pressed_color;
+    else if (hovered) current_color = hover_color;
+    else              current_color = normal_color;
 }
 
 void Button::draw(FontManager& fonts)
 {
     if (!visible) return;
 
-    DrawRectangleRounded(   bounds, 
-                            0.3f,
-                            8,
-                            current_color);
+    const FrameAnimation* anim = buttonGetAnim(*this, animState);
+    bool drewImage = false;
 
-    Font* font = fonts.getFont(font_index);
-    int text_width = MeasureTextEx(*font, text.c_str(), (float)font_size, 1).x;
-    float textX = bounds.x + (bounds.width - text_width) / 2;
-    float textY = bounds.y + (bounds.height - font_size) / 2;
+    if (anim && anim->loaded && !anim->textures.empty())
+    {
+        int frameIdx = animFrame;
+        if (frameIdx >= static_cast<int>(anim->textures.size()))
+            frameIdx = 0;
+        const Texture2D& tex = anim->textures[frameIdx];
+        Rectangle src = {0, 0, (float)tex.width, (float)tex.height};
+        Rectangle dst = {bounds.x, bounds.y, bounds.width, bounds.height};
+        DrawTexturePro(tex, src, dst, {0, 0}, 0.0f, WHITE);
+        drewImage = true;
+    }
 
-    DrawTextEx( *font,
-                text.c_str(), 
-                {textX, textY}, 
-                (float)font_size, 
-                1,
-                text_color);
+    if (!drewImage)
+    {
+        DrawRectangleRounded(bounds, 0.3f, 8, current_color);
+
+        Font* font = fonts.getFont(font_index);
+        int text_width = MeasureTextEx(*font, text.c_str(), (float)font_size, 1).x;
+        float textX = bounds.x + (bounds.width - text_width) / 2;
+        float textY = bounds.y + (bounds.height - font_size) / 2;
+        DrawTextEx(*font, text.c_str(), {textX, textY}, (float)font_size, 1, text_color);
+    }
+}
+
+void Button::setIdleAnimation(const std::vector<std::string>& paths, float duration, bool loop)
+{
+    idleAnim.framePaths = paths;
+    idleAnim.frameDuration = duration;
+    idleAnim.loop = loop;
+    idleAnim.load();
+}
+
+void Button::setHoverAnimation(const std::vector<std::string>& paths, float duration, bool loop)
+{
+    hoverAnim.framePaths = paths;
+    hoverAnim.frameDuration = duration;
+    hoverAnim.loop = loop;
+    hoverAnim.load();
+}
+
+void Button::setClickAnimation(const std::vector<std::string>& paths, float duration, bool loop)
+{
+    clickAnim.framePaths = paths;
+    clickAnim.frameDuration = duration;
+    clickAnim.loop = loop;
+    clickAnim.load();
+}
+
+void Button::unloadAnimations()
+{
+    idleAnim.unload();
+    hoverAnim.unload();
+    clickAnim.unload();
 }
 
 json Button::toJson() const
@@ -173,6 +273,31 @@ json Button::toJson() const
     j["color"] = colorToJson(normal_color);
     j["hover_color"] = colorToJson(hover_color);
     j["pressed_color"] = colorToJson(pressed_color);
+
+    if (idleAnim.hasContent())
+    {
+        json a;
+        a["frames"] = idleAnim.framePaths;
+        a["frame_duration"] = idleAnim.frameDuration;
+        a["loop"] = idleAnim.loop;
+        j["idle_animation"] = a;
+    }
+    if (hoverAnim.hasContent())
+    {
+        json a;
+        a["frames"] = hoverAnim.framePaths;
+        a["frame_duration"] = hoverAnim.frameDuration;
+        a["loop"] = hoverAnim.loop;
+        j["hover_animation"] = a;
+    }
+    if (clickAnim.hasContent())
+    {
+        json a;
+        a["frames"] = clickAnim.framePaths;
+        a["frame_duration"] = clickAnim.frameDuration;
+        a["loop"] = clickAnim.loop;
+        j["click_animation"] = a;
+    }
     return j;
 }
 
@@ -234,18 +359,43 @@ ImageWidget::~ImageWidget()
         UnloadTexture(texture);
         textureLoaded = false;
     }
+    anim.unload();
 }
 
 void ImageWidget::update(float dt)
 {
     Widget::update(dt);
+
+    if (anim.loaded && anim.textures.size() > 1)
+    {
+        animTimer += dt;
+        if (animTimer >= anim.frameDuration)
+        {
+            animTimer -= anim.frameDuration;
+            animFrame++;
+            int total = static_cast<int>(anim.textures.size());
+            if (animFrame >= total)
+                animFrame = anim.loop ? 0 : total - 1;
+        }
+    }
 }
 
 void ImageWidget::draw(FontManager& fonts)
 {
     if (!visible) return;
 
-    if (textureLoaded)
+    if (anim.loaded && !anim.textures.empty())
+    {
+        int frameIdx = animFrame;
+        if (frameIdx >= static_cast<int>(anim.textures.size()))
+            frameIdx = 0;
+        const Texture2D& tex = anim.textures[frameIdx];
+        auto r = computeImageFit(
+            (float)tex.width, (float)tex.height,
+            bounds.x, bounds.y, bounds.width, bounds.height, fit);
+        DrawTexturePro(tex, r.src, r.dst, {0, 0}, 0.0f, tint);
+    }
+    else if (textureLoaded)
     {
         auto r = computeImageFit(
             (float)texture.width, (float)texture.height,
@@ -285,6 +435,16 @@ void ImageWidget::setImagePath(const std::string& path)
     }
 }
 
+void ImageWidget::setAnimation(const std::vector<std::string>& paths, float duration, bool loop)
+{
+    anim.framePaths = paths;
+    anim.frameDuration = duration;
+    anim.loop = loop;
+    anim.load();
+    animFrame = 0;
+    animTimer = 0.0f;
+}
+
 json ImageWidget::toJson() const
 {
     json j = Widget::toJson();
@@ -295,6 +455,14 @@ json ImageWidget::toJson() const
     j["tint"] = colorToJson(tint);
     const char* fitNames[] = {"stretch", "contain", "cover"};
     j["fit"] = fitNames[static_cast<int>(fit)];
+    if (anim.hasContent())
+    {
+        json a;
+        a["frames"] = anim.framePaths;
+        a["frame_duration"] = anim.frameDuration;
+        a["loop"] = anim.loop;
+        j["animation"] = a;
+    }
     return j;
 }
 
@@ -520,6 +688,27 @@ void ImageViewer::removeImage(int index)
         if (currentIndex >= (int)images.size())
             currentIndex = (int)images.size() - 1;
         if (currentIndex < 0) currentIndex = 0;
+    }
+}
+
+void ImageViewer::replaceImage(int index, const std::string& newPath)
+{
+    if (index >= 0 && index < (int)images.size())
+    {
+        if (images[index].loaded)
+            UnloadTexture(images[index].texture);
+
+        images[index].path = newPath;
+        Texture2D tex = LoadTexture(newPath.c_str());
+        if (tex.id > 0)
+        {
+            images[index].texture = tex;
+            images[index].loaded = true;
+        }
+        else
+        {
+            images[index].loaded = false;
+        }
     }
 }
 

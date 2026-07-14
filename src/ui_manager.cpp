@@ -208,6 +208,22 @@ void UIManager::parseWidget(Screen& screen, const json& data)
         if (data.contains("pressed_color")) btn->pressed_color = parseColor(data["pressed_color"]);
         if (data.contains("text_color")) btn->text_color = parseColor(data["text_color"]);
 
+        auto parseAnim = [&](FrameAnimation& anim, const json& animData)
+        {
+            if (animData.contains("frames"))
+                anim.framePaths = animData["frames"].get<std::vector<std::string>>();
+            anim.frameDuration = animData.value("frame_duration", 0.1f);
+            anim.loop = animData.value("loop", true);
+            anim.load();
+        };
+
+        if (data.contains("idle_animation"))
+            parseAnim(btn->idleAnim, data["idle_animation"]);
+        if (data.contains("hover_animation"))
+            parseAnim(btn->hoverAnim, data["hover_animation"]);
+        if (data.contains("click_animation"))
+            parseAnim(btn->clickAnim, data["click_animation"]);
+
     } 
     else if (type == "label") 
     {
@@ -240,6 +256,16 @@ void UIManager::parseWidget(Screen& screen, const json& data)
             if (fitStr == "contain") img->fit = ImageFit::Contain;
             else if (fitStr == "cover") img->fit = ImageFit::Cover;
             else img->fit = ImageFit::Stretch;
+        }
+
+        if (data.contains("animation"))
+        {
+            const auto& animData = data["animation"];
+            if (animData.contains("frames"))
+                img->anim.framePaths = animData["frames"].get<std::vector<std::string>>();
+            img->anim.frameDuration = animData.value("frame_duration", 0.1f);
+            img->anim.loop = animData.value("loop", true);
+            img->anim.load();
         }
     }
     else if (type == "imageviewer")

@@ -84,11 +84,25 @@ private:
     int editTxtR = 255, editTxtG = 255, editTxtB = 255, editTxtA = 255;
     int actionTypeIndex = 0;
 
+    // Button animation editing
+    std::vector<std::string> idleAnimFramePaths;
+    float idleAnimFrameDuration = 0.1f;
+    bool idleAnimLoop = true;
+    std::vector<std::string> hoverAnimFramePaths;
+    float hoverAnimFrameDuration = 0.1f;
+    bool hoverAnimLoop = true;
+    std::vector<std::string> clickAnimFramePaths;
+    float clickAnimFrameDuration = 0.1f;
+    bool clickAnimLoop = true;
+
     // Image widget fields
     char imgPathBuf[512] = "";
     int imgPathBufLen = 0;
     int editTintR = 255, editTintG = 255, editTintB = 255, editTintA = 255;
     int editFitIndex = 0;
+    std::vector<std::string> imgAnimFramePaths;
+    float imgAnimFrameDuration = 0.1f;
+    bool imgAnimLoop = true;
 
     // Screen background image fields
     char bgImgPathBuf[512] = "";
