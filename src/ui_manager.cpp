@@ -1,5 +1,6 @@
 #include "ui_manager.hpp"
 #include "pixel_scale.hpp"
+#include "bg_pattern.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -155,6 +156,23 @@ void UIManager::parseScreen(const std::string& name, const json& data) {
         else screen->setBackgroundFit(ImageFit::Stretch);
     }
 
+    if (data.contains("bg_pattern"))
+    {
+        screen->setPattern(bgPatternFromName(data["bg_pattern"].get<std::string>().c_str()));
+    }
+    if (data.contains("bg_pattern_color_a"))
+    {
+        screen->setPatternColorA(parseColor(data["bg_pattern_color_a"]));
+    }
+    if (data.contains("bg_pattern_color_b"))
+    {
+        screen->setPatternColorB(parseColor(data["bg_pattern_color_b"]));
+    }
+    if (data.contains("bg_pattern_tile_size"))
+    {
+        screen->setPatternTileSize(data["bg_pattern_tile_size"].get<int>());
+    }
+
     if (data.contains("widgets")) 
     {
         for (auto& widgetData : data["widgets"]) 
@@ -223,6 +241,35 @@ void UIManager::parseWidget(Screen& screen, const json& data)
             else if (fitStr == "cover") img->fit = ImageFit::Cover;
             else img->fit = ImageFit::Stretch;
         }
+    }
+    else if (type == "imageviewer")
+    {
+        auto iv = screen.createWidget<ImageViewer>(
+            data.value("x", 0.0f),
+            data.value("y", 0.0f),
+            data.value("width", 300.0f),
+            data.value("height", 250.0f)
+        );
+
+        if (data.contains("tint")) iv->tint = parseColor(data["tint"]);
+
+        if (data.contains("fit"))
+        {
+            std::string fitStr = data["fit"].get<std::string>();
+            if (fitStr == "contain") iv->fit = ImageFit::Contain;
+            else if (fitStr == "cover") iv->fit = ImageFit::Cover;
+            else iv->fit = ImageFit::Stretch;
+        }
+
+        if (data.contains("images") && data["images"].is_array())
+        {
+            for (auto& path : data["images"])
+            {
+                iv->addImage(path.get<std::string>());
+            }
+        }
+
+        iv->setCurrentIndex(data.value("current_index", 0));
     }
     else if (type == "richtextbox")
     {

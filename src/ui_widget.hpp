@@ -18,6 +18,7 @@ enum class WidgetType
     Label,
     Panel,
     Image,
+    ImageViewer,
     RichTextBox
 };
 
@@ -111,6 +112,42 @@ public:
     ImageFit fit = ImageFit::Stretch;
     Texture2D texture = {};
     bool textureLoaded = false;
+};
+
+struct ImageViewerImage
+{
+    std::string path;
+    Texture2D texture = {};
+    bool loaded = false;
+};
+
+class ImageViewer : public Widget
+{
+public:
+    ImageViewer();
+    ImageViewer(float x, float y, float w, float h);
+    ~ImageViewer();
+
+    void update(float dt) override;
+    void draw(FontManager& fonts) override;
+    json toJson() const override;
+
+    void addImage(const std::string& path);
+    void removeImage(int index);
+    void clearImages();
+    void setCurrentIndex(int index);
+
+    std::vector<ImageViewerImage> images;
+    int currentIndex = 0;
+    Color tint = WHITE;
+    ImageFit fit = ImageFit::Contain;
+
+    bool isFullscreen() const;
+    void setFullscreen(bool fs);
+
+private:
+    bool fullscreen = false;
+    int hoveredButton = -1;
 };
 
 enum class TextAlign { Left, Center, Right, Justify };

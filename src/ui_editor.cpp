@@ -125,6 +125,13 @@ void UIEditor::deselectWidget()
         editBgColorG = bc.g;
         editBgColorB = bc.b;
         editBgColorA = bc.a;
+
+        editBgPatternIndex = static_cast<int>(screen->getPattern());
+        Color pa = screen->getPatternColorA();
+        editPatColorAR = pa.r; editPatColorAG = pa.g; editPatColorAB = pa.b; editPatColorAA = pa.a;
+        Color pb = screen->getPatternColorB();
+        editPatColorBR = pb.r; editPatColorBG = pb.g; editPatColorBB = pb.b; editPatColorBA = pb.a;
+        editPatTileSize = screen->getPatternTileSize();
     }
     else
     {
@@ -166,6 +173,10 @@ void UIEditor::syncPropsFromSelected()
     yBufLen = static_cast<int>(strlen(yBuf));
     editWidth = widget->getSize().x;
     editHeight = widget->getSize().y;
+    snprintf(wBuf, sizeof(wBuf), "%.0f", editWidth);
+    wBufLen = static_cast<int>(strlen(wBuf));
+    snprintf(hBuf, sizeof(hBuf), "%.0f", editHeight);
+    hBufLen = static_cast<int>(strlen(hBuf));
 
     editTxtR = widget->text_color.r;
     editTxtG = widget->text_color.g;
@@ -213,6 +224,16 @@ void UIEditor::syncPropsFromSelected()
         rtbPadding = rtb->padding;
         rtbTextAlign = static_cast<int>(rtb->textAlign);
     }
+
+    if (widget->getType() == WidgetType::ImageViewer)
+    {
+        ImageViewer* iv = static_cast<ImageViewer*>(widget);
+        editTintR = iv->tint.r;
+        editTintG = iv->tint.g;
+        editTintB = iv->tint.b;
+        editTintA = iv->tint.a;
+        editFitIndex = static_cast<int>(iv->fit);
+    }
 }
 
 void UIEditor::applyPropsToSelected()
@@ -221,7 +242,12 @@ void UIEditor::applyPropsToSelected()
     if (!widget)
     {
         Screen* s = getCurrentScreen();
-        if (s) s->setBackgroundColor(colorToEdit(editBgColorR, editBgColorG, editBgColorB, editBgColorA));
+        if (s)
+        {
+            s->setBackgroundColor(colorToEdit(editBgColorR, editBgColorG, editBgColorB, editBgColorA));
+            s->setPatternColorA(colorToEdit(editPatColorAR, editPatColorAG, editPatColorAB, editPatColorAA));
+            s->setPatternColorB(colorToEdit(editPatColorBR, editPatColorBG, editPatColorBB, editPatColorBA));
+        }
         return;
     }
 
@@ -229,7 +255,7 @@ void UIEditor::applyPropsToSelected()
     widget->font_size = editFontSize;
     widget->font_index = editFontIndex;
     widget->setPosition(editX, editY);
-    if (widget->getType() == WidgetType::Button || widget->getType() == WidgetType::Image || widget->getType() == WidgetType::RichTextBox)
+    if (widget->getType() == WidgetType::Button || widget->getType() == WidgetType::Image || widget->getType() == WidgetType::ImageViewer || widget->getType() == WidgetType::RichTextBox)
         widget->setSize(editWidth, editHeight);
 
     widget->text_color = colorToEdit(editTxtR, editTxtG, editTxtB, editTxtA);
@@ -271,6 +297,13 @@ void UIEditor::applyPropsToSelected()
         rtb->padding = rtbPadding;
         rtb->textAlign = static_cast<TextAlign>(rtbTextAlign);
     }
+
+    if (widget->getType() == WidgetType::ImageViewer)
+    {
+        ImageViewer* iv = static_cast<ImageViewer*>(widget);
+        iv->tint = colorToEdit(editTintR, editTintG, editTintB, editTintA);
+        iv->fit = static_cast<ImageFit>(editFitIndex);
+    }
 }
 
 
@@ -287,6 +320,8 @@ void UIEditor::addWidgetToScreen(const std::string& type)
         screen->createWidget<ImageWidget>(300, 200, 150, 150, "");
     else if (type == "richtextbox")
         screen->createWidget<RichTextBox>(300, 150, 400, 250);
+    else if (type == "imageviewer")
+        screen->createWidget<ImageViewer>(300, 200, 300, 250);
     auto& widgets = screen->getWidgets();
     selectWidget(static_cast<int>(widgets.size()) - 1);
 }
@@ -324,6 +359,21 @@ void UIEditor::duplicateSelectedWidget()
             w->getSize().x, w->getSize().y, srcImg->imagePath);
         img->tint = srcImg->tint;
         screen->addWidget(img);
+    }
+    else if (w->getType() == WidgetType::ImageViewer)
+    {
+        ImageViewer* srcIv = static_cast<ImageViewer*>(w);
+        auto iv = std::make_shared<ImageViewer>(
+            w->getPosition().x + 20, w->getPosition().y + 20,
+            w->getSize().x, w->getSize().y);
+        iv->tint = srcIv->tint;
+        iv->fit = srcIv->fit;
+        for (auto& img : srcIv->images)
+        {
+            iv->addImage(img.path);
+        }
+        iv->setCurrentIndex(srcIv->currentIndex);
+        screen->addWidget(iv);
     }
     else
     {
@@ -611,6 +661,12 @@ void UIEditor::commitActiveField()
         case Field::PosY:
             editY = strtof(yBuf, nullptr);
             break;
+        case Field::SizeW:
+            editWidth = strtof(wBuf, nullptr);
+            break;
+        case Field::SizeH:
+            editHeight = strtof(hBuf, nullptr);
+            break;
         case Field::ColorR: case Field::ColorG: case Field::ColorB: case Field::ColorA:
             if (activeColorR)
             {
@@ -723,6 +779,11 @@ void UIEditor::update(float dt)
                 {
                     contentH += 60.0f + 20.0f + 74.0f + 80.0f;
                 }
+                else if (selectedWidget->getType() == WidgetType::ImageViewer)
+                {
+                    ImageViewer* iv = static_cast<ImageViewer*>(selectedWidget);
+                    contentH += 60.0f + 20.0f + 74.0f + 80.0f + (float)iv->images.size() * 18.0f;
+                }
                 else if (selectedWidget->getType() == WidgetType::RichTextBox)
                 {
                     contentH += 74.0f + 80.0f + 84.0f;
@@ -806,6 +867,10 @@ void UIEditor::update(float dt)
             newH = roundf(newH / GRID_SIZE) * GRID_SIZE;
             editWidth = newW;
             editHeight = newH;
+            snprintf(wBuf, sizeof(wBuf), "%.0f", editWidth);
+            wBufLen = static_cast<int>(strlen(wBuf));
+            snprintf(hBuf, sizeof(hBuf), "%.0f", editHeight);
+            hBufLen = static_cast<int>(strlen(hBuf));
             applyPropsToSelected();
         }
         else if (!IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -844,7 +909,7 @@ void UIEditor::update(float dt)
     if (mouseInCanvas && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && selectedWidgetIndex >= 0)
     {
         Widget* selectedWidget = getSelectedWidget();
-        if (selectedWidget && (selectedWidget->getType() == WidgetType::Button || selectedWidget->getType() == WidgetType::Image || selectedWidget->getType() == WidgetType::RichTextBox))
+        if (selectedWidget && (selectedWidget->getType() == WidgetType::Button || selectedWidget->getType() == WidgetType::Image || selectedWidget->getType() == WidgetType::ImageViewer || selectedWidget->getType() == WidgetType::RichTextBox))
         {
             float localX = mouseCanvasX;
             float localY = mouseCanvasY;
@@ -950,6 +1015,10 @@ void UIEditor::drawToolbar()
 
     if (button({x, 4, 65, 32}, "+ RichText", {50, 120, 100, 255}))
         addWidgetToScreen("richtextbox");
+    x += 70;
+
+    if (button({x, 4, 65, 32}, "+ Viewer", {120, 80, 120, 255}))
+        addWidgetToScreen("imageviewer");
     x += 70;
 
     if (button({x, 4, 55, 32}, "Fonts", {100, 80, 120, 255}))
@@ -1093,6 +1162,16 @@ void UIEditor::drawCanvas()
     Color bgColor = currentScreen->getBackgroundColor();
     DrawRectangle(1, 1, static_cast<int>(canvasW - 2), static_cast<int>(canvasH - 2), bgColor);
 
+    if (currentScreen->getPattern() != BgPattern::None)
+    {
+        drawBackgroundPattern(
+            currentScreen->getPattern(),
+            currentScreen->getPatternColorA(),
+            currentScreen->getPatternColorB(),
+            currentScreen->getPatternTileSize(),
+            static_cast<int>(canvasW - 2), static_cast<int>(canvasH - 2));
+    }
+
     if (currentScreen->hasBackgroundImage())
     {
         Texture2D bgTex = currentScreen->getBackgroundTexture();
@@ -1148,7 +1227,7 @@ void UIEditor::drawCanvas()
             selRect = {cx, cy, cw, ch};
             haveSel = true;
 
-            if (widgets[i]->getType() == WidgetType::Button || widgets[i]->getType() == WidgetType::Image || widgets[i]->getType() == WidgetType::RichTextBox)
+            if (widgets[i]->getType() == WidgetType::Button || widgets[i]->getType() == WidgetType::Image || widgets[i]->getType() == WidgetType::ImageViewer || widgets[i]->getType() == WidgetType::RichTextBox)
             {
                 float hx = pos.x + widgets[i]->getSize().x - 6;
                 float hy = pos.y + widgets[i]->getSize().y - 6;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui_widget.hpp"
+#include "bg_pattern.hpp"
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <memory>
@@ -34,6 +35,15 @@ public:
     void setBackgroundFit(ImageFit fit);
     ImageFit getBackgroundFit() const;
 
+    void setPattern(BgPattern pattern);
+    BgPattern getPattern() const;
+    void setPatternColorA(Color color);
+    Color getPatternColorA() const;
+    void setPatternColorB(Color color);
+    Color getPatternColorB() const;
+    void setPatternTileSize(int size);
+    int getPatternTileSize() const;
+
     std::vector<std::shared_ptr<Widget>>& getWidgets();
     void removeWidget(size_t index);
 
@@ -55,4 +65,8 @@ private:
     Texture2D background_texture = {};
     bool background_texture_loaded = false;
     ImageFit background_fit = ImageFit::Stretch;
+    BgPattern bg_pattern = BgPattern::None;
+    Color pattern_color_a = {255, 165, 0, 255};
+    Color pattern_color_b = {180, 100, 0, 255};
+    int pattern_tile_size = 64;
 };

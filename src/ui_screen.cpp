@@ -2,6 +2,7 @@
 #include "font_manager.hpp"
 #include "pixel_scale.hpp"
 #include "image_utils.hpp"
+#include "bg_pattern.hpp"
 
 Screen::Screen(const std::string& name_) : name(name_) {}
 
@@ -21,6 +22,12 @@ void Screen::update(float dt)
 void Screen::draw(FontManager& fonts)
 {
     ClearBackground(background_color);
+
+    if (bg_pattern != BgPattern::None)
+    {
+        drawBackgroundPattern(bg_pattern, pattern_color_a, pattern_color_b,
+            pattern_tile_size, GetVirtualScreenWidth(), GetVirtualScreenHeight());
+    }
 
     if (background_texture_loaded)
     {
@@ -112,6 +119,46 @@ ImageFit Screen::getBackgroundFit() const
     return background_fit;
 }
 
+void Screen::setPattern(BgPattern pattern)
+{
+    bg_pattern = pattern;
+}
+
+BgPattern Screen::getPattern() const
+{
+    return bg_pattern;
+}
+
+void Screen::setPatternColorA(Color color)
+{
+    pattern_color_a = color;
+}
+
+Color Screen::getPatternColorA() const
+{
+    return pattern_color_a;
+}
+
+void Screen::setPatternColorB(Color color)
+{
+    pattern_color_b = color;
+}
+
+Color Screen::getPatternColorB() const
+{
+    return pattern_color_b;
+}
+
+void Screen::setPatternTileSize(int size)
+{
+    pattern_tile_size = size;
+}
+
+int Screen::getPatternTileSize() const
+{
+    return pattern_tile_size;
+}
+
 std::vector<std::shared_ptr<Widget>>& Screen::getWidgets()
 {
     return widgets;
@@ -134,6 +181,13 @@ json Screen::toJson() const
         j["background_image"] = background_image_path;
         const char* fitNames[] = {"stretch", "contain", "cover"};
         j["background_fit"] = fitNames[static_cast<int>(background_fit)];
+    }
+    if (bg_pattern != BgPattern::None)
+    {
+        j["bg_pattern"] = bgPatternName(bg_pattern);
+        j["bg_pattern_color_a"] = {pattern_color_a.r, pattern_color_a.g, pattern_color_a.b, pattern_color_a.a};
+        j["bg_pattern_color_b"] = {pattern_color_b.r, pattern_color_b.g, pattern_color_b.b, pattern_color_b.a};
+        j["bg_pattern_tile_size"] = pattern_tile_size;
     }
     json widgetsArr = json::array();
     for (auto& widget : widgets)

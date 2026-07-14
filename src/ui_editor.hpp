@@ -2,6 +2,7 @@
 
 #include "ui_manager.hpp"
 #include "font_manager.hpp"
+#include "bg_pattern.hpp"
 #include <string>
 #include <vector>
 
@@ -54,6 +55,8 @@ private:
         ScreenName = 5,
         PosX = 10,
         PosY = 11,
+        SizeW = 12,
+        SizeH = 13,
         ColorR = 20,
         ColorG = 21,
         ColorB = 22,
@@ -71,6 +74,10 @@ private:
     char yBuf[16] = "";
     int yBufLen = 0;
     float editWidth = 200, editHeight = 50;
+    char wBuf[16] = "";
+    int wBufLen = 0;
+    char hBuf[16] = "";
+    int hBufLen = 0;
     int editColorR = 0, editColorG = 0, editColorB = 0, editColorA = 255;
     int editHoverR = 0, editHoverG = 0, editHoverB = 0, editHoverA = 255;
     int editPressR = 0, editPressG = 0, editPressB = 0, editPressA = 255;
@@ -91,6 +98,12 @@ private:
     // Screen background color fields
     int editBgColorR = 245, editBgColorG = 245, editBgColorB = 245, editBgColorA = 255;
 
+    // Screen background pattern fields
+    int editBgPatternIndex = 0;
+    int editPatColorAR = 255, editPatColorAG = 165, editPatColorAB = 0, editPatColorAA = 255;
+    int editPatColorBR = 180, editPatColorBG = 100, editPatColorBB = 0, editPatColorBA = 255;
+    int editPatTileSize = 64;
+
     // RichTextBox editing
     char mdContentBuf[8192] = "";
     int mdContentBufLen = 0;
@@ -98,6 +111,8 @@ private:
     float rtbLineSpacing = 1.4f;
     int rtbPadding = 8;
     int rtbTextAlign = 0;
+
+    // ImageViewer editing
 
     // Color picker state
     int expandedColorId = -1;
@@ -178,4 +193,5 @@ private:
     void textBoxDrawCursor(Rectangle rec, const char* buf, int len, int pos, bool multiline);
     void textBoxDrawText(Rectangle rec, const char* buf, int len, bool multiline);
     void drawRichTextBoxProperties(float& py, float lx, float iw);
+    void drawImageViewerProperties(float& py, float lx, float iw);
 };

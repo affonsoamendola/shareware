@@ -279,6 +279,37 @@ void UIEditor::drawPropertyPanel()
             colorPicker("BG Color:", editBgColorR, editBgColorG, editBgColorB, editBgColorA, -100, py);
             py += 6;
 
+            DrawText("BG Pattern:", static_cast<int>(lx), static_cast<int>(py), 11, LIGHTGRAY);
+            py += 14;
+            {
+                float controlW = iw + 55;
+                int patCount = bgPatternCount();
+                for (int i = 0; i < patCount; i++)
+                {
+                    Color bg = (editBgPatternIndex == i) ? (Color){70, 70, 130, 255} : (Color){50, 50, 60, 255};
+                    if (button({lx, py, controlW - 2, 16}, bgPatternNameByIndex(i), bg))
+                    {
+                        editBgPatternIndex = i;
+                        screen->setPattern(static_cast<BgPattern>(editBgPatternIndex));
+                    }
+                    py += 18.0f;
+                }
+                py += 4;
+            }
+
+            if (editBgPatternIndex != 0)
+            {
+                colorPicker("Pat Color A:", editPatColorAR, editPatColorAG, editPatColorAB, editPatColorAA, -200, py);
+                py += 6;
+                colorPicker("Pat Color B:", editPatColorBR, editPatColorBG, editPatColorBB, editPatColorBA, -201, py);
+                py += 6;
+                if (slider({lx, py, iw + 55, 16}, "Tile Size:", &editPatTileSize, 4, 64))
+                {
+                    screen->setPatternTileSize(editPatTileSize);
+                }
+                py += 20;
+            }
+
             DrawText("BG Image:", static_cast<int>(lx), static_cast<int>(py), 11, LIGHTGRAY);
             Rectangle bgRec = {lx + 55, py - 2, iw, 18};
             if (textBox(bgRec, bgImgPathBuf, sizeof(bgImgPathBuf), bgImgPathBufLen, activeField == Field::BgImagePath))
@@ -367,6 +398,7 @@ void UIEditor::drawPropertyPanel()
     if (w->getType() == WidgetType::Button) typeName = "Button";
     else if (w->getType() == WidgetType::Label) typeName = "Label";
     else if (w->getType() == WidgetType::Image) typeName = "Image";
+    else if (w->getType() == WidgetType::ImageViewer) typeName = "ImageViewer";
     else if (w->getType() == WidgetType::RichTextBox) typeName = "RichTextBox";
     DrawText("Type:", static_cast<int>(lx), static_cast<int>(py), 11, LIGHTGRAY);
     DrawText(typeName, static_cast<int>(vx), static_cast<int>(py), 11, WHITE);
@@ -428,6 +460,10 @@ void UIEditor::drawPropertyPanel()
                 {0, 0}, 0.0f, imgWidget->tint);
             py += previewH + 8;
         }
+    }
+    else if (w->getType() == WidgetType::ImageViewer)
+    {
+        drawImageViewerProperties(py, lx, iw);
     }
     else if (w->getType() == WidgetType::RichTextBox)
     {
@@ -510,23 +546,39 @@ void UIEditor::drawPropertyPanel()
     }
     py += 22;
 
-    if (w->getType() == WidgetType::Button || w->getType() == WidgetType::Image || w->getType() == WidgetType::RichTextBox)
+    if (w->getType() == WidgetType::Button || w->getType() == WidgetType::Image || w->getType() == WidgetType::ImageViewer || w->getType() == WidgetType::RichTextBox)
     {
-        Rectangle sr = {lx, py, iw + 55, 16};
-        if (sliderF(sr, "W:", &editWidth, 20, 600))
+        float fieldW = (iw + 55) / 2 - 20;
+        DrawText("W:", static_cast<int>(lx), static_cast<int>(py + 2), 10, LIGHTGRAY);
+        Rectangle wRec = {lx + 16, py - 2, fieldW, 16};
+        if (textBox(wRec, wBuf, sizeof(wBuf), wBufLen, activeField == Field::SizeW))
+            activeField = Field::SizeW;
+
+        float hLabelX = lx + 16 + fieldW + 8;
+        DrawText("H:", static_cast<int>(hLabelX), static_cast<int>(py + 2), 10, LIGHTGRAY);
+        Rectangle hRec = {hLabelX + 16, py - 2, fieldW, 16};
+        if (textBox(hRec, hBuf, sizeof(hBuf), hBufLen, activeField == Field::SizeH))
+            activeField = Field::SizeH;
+
+        if (activeField == Field::SizeW && IsKeyPressed(KEY_TAB))
+        {
+            commitActiveField();
+            activeField = Field::SizeH;
+        }
+        if (activeField == Field::SizeH && IsKeyPressed(KEY_TAB))
+        {
+            commitActiveField();
+            activeField = Field::None;
             applyPropsToSelected();
-        py += 18;
-        sr = {lx, py, iw + 55, 16};
-        if (sliderF(sr, "H:", &editHeight, 10, 300))
-            applyPropsToSelected();
-        py += 20;
+        }
+        py += 22;
     }
 
     py += 4;
     DrawText("-- Colors --", static_cast<int>(lx), static_cast<int>(py), 10, GRAY);
     py += 14;
 
-    if (w->getType() == WidgetType::Image)
+    if (w->getType() == WidgetType::Image || w->getType() == WidgetType::ImageViewer)
     {
         colorPicker("Tint:", editTintR, editTintG, editTintB, editTintA, 0, py);
 
@@ -626,6 +678,120 @@ void UIEditor::drawPropertyPanel()
     }
 
     EndScissorMode();
+}
+
+void UIEditor::drawImageViewerProperties(float& positionY, float labelX, float inputWidth)
+{
+    float controlW = inputWidth + 55;
+
+    DrawText("Images:", static_cast<int>(labelX), static_cast<int>(positionY), 11, LIGHTGRAY);
+    positionY += 14;
+
+    Widget* w = getSelectedWidget();
+    if (!w || w->getType() != WidgetType::ImageViewer) return;
+    ImageViewer* iv = static_cast<ImageViewer*>(w);
+
+    if (button({labelX, positionY, controlW / 2 - 2, 18}, "Add Images", {60, 80, 120, 255}))
+    {
+        const char* filterPatterns[] = { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tga" };
+        const char* result = tinyfd_openFileDialog("Select Images", "", 6, filterPatterns, "Image Files", 1);
+        if (result)
+        {
+            std::string paths(result);
+            size_t pos = 0;
+            while ((pos = paths.find('|')) != std::string::npos)
+            {
+                iv->addImage(paths.substr(0, pos));
+                paths.erase(0, pos + 1);
+            }
+            if (!paths.empty())
+                iv->addImage(paths);
+            applyPropsToSelected();
+        }
+    }
+
+    if (button({labelX + controlW / 2 + 2, positionY, controlW / 2 - 2, 18}, "Clear All", {140, 60, 60, 255}))
+    {
+        iv->clearImages();
+        applyPropsToSelected();
+    }
+    positionY += 24;
+
+    DrawText(TextFormat("Count: %d", (int)iv->images.size()),
+        static_cast<int>(labelX), static_cast<int>(positionY), 10, LIGHTGRAY);
+    positionY += 14;
+
+    for (int i = 0; i < (int)iv->images.size(); i++)
+    {
+        bool isSelected = (i == iv->currentIndex);
+        Color bg = isSelected ? (Color){60, 60, 120, 255} : (Color){40, 40, 50, 255};
+        Rectangle r = {labelX, positionY, controlW - 40, 16};
+
+        DrawRectangleRec(r, bg);
+
+        std::string fileName = iv->images[i].path;
+        size_t lastSlash = fileName.find_last_of("/\\");
+        if (lastSlash != std::string::npos)
+            fileName = fileName.substr(lastSlash + 1);
+        if (fileName.length() > 28)
+            fileName = fileName.substr(0, 25) + "...";
+
+        DrawText(fileName.c_str(), static_cast<int>(labelX + 4), static_cast<int>(positionY + 3), 10, WHITE);
+
+        Vector2 m = GetVirtualMousePos();
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(m, r))
+        {
+            iv->setCurrentIndex(i);
+            applyPropsToSelected();
+        }
+
+        if (button({labelX + controlW - 38, positionY, 18, 16}, "X", {120, 50, 50, 255}))
+        {
+            iv->removeImage(i);
+            applyPropsToSelected();
+            break;
+        }
+
+        positionY += 18;
+    }
+
+    if (!iv->images.empty())
+    {
+        positionY += 4;
+        DrawText(TextFormat("Current: %d", iv->currentIndex + 1),
+            static_cast<int>(labelX), static_cast<int>(positionY), 10, LIGHTGRAY);
+        positionY += 16;
+    }
+
+    if (iv->images.empty())
+    {
+        DrawText("Add images above", static_cast<int>(labelX), static_cast<int>(positionY), 10, GRAY);
+        positionY += 14;
+    }
+
+    if (iv->currentIndex >= 0 && iv->currentIndex < (int)iv->images.size() && iv->images[iv->currentIndex].loaded)
+    {
+        DrawText("Preview:", static_cast<int>(labelX), static_cast<int>(positionY), 10, GRAY);
+        positionY += 12;
+        float previewW = controlW;
+        float previewH = 60.0f;
+        DrawRectangleRec({labelX, positionY, previewW, previewH}, {25, 25, 35, 255});
+        DrawRectangleLinesEx({labelX, positionY, previewW, previewH}, 1, DARKGRAY);
+
+        Texture2D& tex = iv->images[iv->currentIndex].texture;
+        float texW = (float)tex.width;
+        float texH = (float)tex.height;
+        float scale = (previewW / texW < previewH / texH) ? previewW / texW : previewH / texH;
+        float drawW = texW * scale;
+        float drawH = texH * scale;
+        float drawX = labelX + (previewW - drawW) / 2;
+        float drawY = positionY + (previewH - drawH) / 2;
+        DrawTexturePro(tex,
+            {0, 0, texW, texH},
+            {drawX, drawY, drawW, drawH},
+            {0, 0}, 0.0f, iv->tint);
+        positionY += previewH + 8;
+    }
 }
 
 void UIEditor::drawFontPanel()

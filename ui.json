@@ -52,6 +52,10 @@
         },
         "game": {
             "background": [20, 60, 20, 255],
+            "bg_pattern": "checkerboard",
+            "bg_pattern_color_a": [30, 80, 30, 255],
+            "bg_pattern_color_b": [20, 60, 20, 255],
+            "bg_pattern_tile_size": 32,
             "widgets": [
                 {
                     "type": "label",

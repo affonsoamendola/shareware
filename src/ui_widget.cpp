@@ -298,6 +298,281 @@ json ImageWidget::toJson() const
     return j;
 }
 
+// ImageViewer
+ImageViewer::ImageViewer()
+{
+    type = WidgetType::ImageViewer;
+}
+
+ImageViewer::ImageViewer(float x, float y, float w, float h)
+{
+    type = WidgetType::ImageViewer;
+    bounds = {x, y, w, h};
+}
+
+ImageViewer::~ImageViewer()
+{
+    for (auto& img : images)
+    {
+        if (img.loaded)
+        {
+            UnloadTexture(img.texture);
+            img.loaded = false;
+        }
+    }
+}
+
+void ImageViewer::update(float dt)
+{
+    Widget::update(dt);
+
+    if (!visible || !enabled) return;
+    if (fullscreen)
+    {
+        if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_ENTER))
+        {
+            fullscreen = false;
+        }
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+        {
+            if (!images.empty())
+                currentIndex = (currentIndex + 1) % (int)images.size();
+        }
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+        {
+            if (!images.empty())
+                currentIndex = (currentIndex - 1 + (int)images.size()) % (int)images.size();
+        }
+        return;
+    }
+
+    hoveredButton = -1;
+    Vector2 mouse = GetVirtualMousePos();
+
+    float btnSize = 28.0f;
+    float btnY = bounds.y + bounds.height - btnSize - 4.0f;
+    float totalBtnW = btnSize * 2 + 8.0f;
+    float btnStartX = bounds.x + (bounds.width - totalBtnW) / 2.0f;
+
+    Rectangle prevBtn = {btnStartX, btnY, btnSize, btnSize};
+    Rectangle nextBtn = {btnStartX + btnSize + 8.0f, btnY, btnSize, btnSize};
+
+    bool prevHover = CheckCollisionPointRec(mouse, prevBtn);
+    bool nextHover = CheckCollisionPointRec(mouse, nextBtn);
+
+    if (prevHover) hoveredButton = 0;
+    if (nextHover) hoveredButton = 1;
+
+    if (prevHover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !images.empty())
+    {
+        currentIndex = (currentIndex - 1 + (int)images.size()) % (int)images.size();
+    }
+    if (nextHover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !images.empty())
+    {
+        currentIndex = (currentIndex + 1) % (int)images.size();
+    }
+
+    Rectangle imageArea = {bounds.x, bounds.y, bounds.width, bounds.height - btnSize - 8.0f};
+    if (CheckCollisionPointRec(mouse, imageArea) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !images.empty())
+    {
+        fullscreen = true;
+    }
+}
+
+void ImageViewer::draw(FontManager& fonts)
+{
+    if (!visible) return;
+
+    if (fullscreen)
+    {
+        float screenW = (float)GetScreenWidth();
+        float screenH = (float)GetScreenHeight();
+        DrawRectangle(0, 0, (int)screenW, (int)screenH, {0, 0, 0, 230});
+
+        if (!images.empty() && images[currentIndex].loaded)
+        {
+            auto& tex = images[currentIndex].texture;
+            auto r = computeImageFit(
+                (float)tex.width, (float)tex.height,
+                20.0f, 20.0f, screenW - 40.0f, screenH - 40.0f, fit);
+            DrawTexturePro(tex, r.src, r.dst, {0, 0}, 0.0f, tint);
+        }
+
+        float fsBtnSize = 36.0f;
+        float fsBtnY = screenH - fsBtnSize - 16.0f;
+        float fsTotalBtnW = fsBtnSize * 2 + 12.0f;
+        float fsBtnStartX = (screenW - fsTotalBtnW) / 2.0f;
+
+        Rectangle fsPrevBtn = {fsBtnStartX, fsBtnY, fsBtnSize, fsBtnSize};
+        Rectangle fsNextBtn = {fsBtnStartX + fsBtnSize + 12.0f, fsBtnY, fsBtnSize, fsBtnSize};
+        Vector2 mouse = GetVirtualMousePos();
+
+        for (int i = 0; i < 2; i++)
+        {
+            Rectangle& btn = (i == 0) ? fsPrevBtn : fsNextBtn;
+            bool hover = CheckCollisionPointRec(mouse, btn);
+            Color bg = hover ? Color{100, 100, 120, 200} : Color{60, 60, 80, 180};
+            DrawRectangleRounded(btn, 0.3f, 4, bg);
+
+            const char* label = (i == 0) ? "<" : ">";
+            int labelW = MeasureText(label, 16);
+            DrawText(label,
+                (int)(btn.x + (btn.width - labelW) / 2),
+                (int)(btn.y + (btn.height - 16) / 2),
+                16, WHITE);
+        }
+
+        if (!images.empty())
+        {
+            std::string counter = std::to_string(currentIndex + 1) + " / " + std::to_string((int)images.size());
+            int counterW = MeasureText(counter.c_str(), 14);
+            DrawText(counter.c_str(), (int)(screenW - counterW - 20), (int)(screenH - 30), 14, WHITE);
+        }
+
+        const char* closeText = "[ESC] Close";
+        int closeW = MeasureText(closeText, 12);
+        DrawText(closeText, (int)(screenW - closeW - 20), 20, 12, {200, 200, 200, 180});
+        return;
+    }
+
+    if (!images.empty() && currentIndex >= 0 && currentIndex < (int)images.size() &&
+        images[currentIndex].loaded)
+    {
+        auto& tex = images[currentIndex].texture;
+        float imageH = bounds.height - 36.0f;
+        auto r = computeImageFit(
+            (float)tex.width, (float)tex.height,
+            bounds.x, bounds.y, bounds.width, imageH, fit);
+        DrawTexturePro(tex, r.src, r.dst, {0, 0}, 0.0f, tint);
+    }
+    else
+    {
+        DrawRectangleRec(bounds, {60, 60, 60, 255});
+        DrawRectangleLinesEx(bounds, 1, DARKGRAY);
+        DrawText("No Images",
+            (int)(bounds.x + bounds.width / 2 - 35),
+            (int)(bounds.y + bounds.height / 2 - 6),
+            10, LIGHTGRAY);
+    }
+
+    float btnSize = 28.0f;
+    float btnY = bounds.y + bounds.height - btnSize - 4.0f;
+    float totalBtnW = btnSize * 2 + 8.0f;
+    float btnStartX = bounds.x + (bounds.width - totalBtnW) / 2.0f;
+
+    Vector2 mouse = GetVirtualMousePos();
+
+    for (int i = 0; i < 2; i++)
+    {
+        float bx = btnStartX + i * (btnSize + 8.0f);
+        Rectangle btn = {bx, btnY, btnSize, btnSize};
+        bool hover = (hoveredButton == i);
+        Color bg = hover ? Color{100, 100, 120, 255} : Color{60, 60, 80, 255};
+        DrawRectangleRounded(btn, 0.3f, 4, bg);
+
+        const char* label = (i == 0) ? "<" : ">";
+        int labelW = MeasureText(label, 14);
+        DrawText(label,
+            (int)(bx + (btnSize - labelW) / 2),
+            (int)(btnY + (btnSize - 14) / 2),
+            14, WHITE);
+    }
+
+    if (!images.empty())
+    {
+        std::string counter = std::to_string(currentIndex + 1) + " / " + std::to_string((int)images.size());
+        int counterW = MeasureText(counter.c_str(), 10);
+        DrawText(counter.c_str(),
+            (int)(bounds.x + (bounds.width - counterW) / 2),
+            (int)(btnY + btnSize + 2),
+            10, LIGHTGRAY);
+    }
+}
+
+void ImageViewer::addImage(const std::string& path)
+{
+    ImageViewerImage img;
+    img.path = path;
+
+    if (!path.empty())
+    {
+        ::Image rawImg = LoadImage(path.c_str());
+        if (rawImg.width > 0 && rawImg.height > 0)
+        {
+            img.texture = LoadTextureFromImage(rawImg);
+            UnloadImage(rawImg);
+            img.loaded = true;
+        }
+    }
+
+    images.push_back(img);
+}
+
+void ImageViewer::removeImage(int index)
+{
+    if (index >= 0 && index < (int)images.size())
+    {
+        if (images[index].loaded)
+        {
+            UnloadTexture(images[index].texture);
+        }
+        images.erase(images.begin() + index);
+        if (currentIndex >= (int)images.size())
+            currentIndex = (int)images.size() - 1;
+        if (currentIndex < 0) currentIndex = 0;
+    }
+}
+
+void ImageViewer::clearImages()
+{
+    for (auto& img : images)
+    {
+        if (img.loaded)
+        {
+            UnloadTexture(img.texture);
+        }
+    }
+    images.clear();
+    currentIndex = 0;
+}
+
+void ImageViewer::setCurrentIndex(int index)
+{
+    if (index >= 0 && index < (int)images.size())
+        currentIndex = index;
+}
+
+bool ImageViewer::isFullscreen() const
+{
+    return fullscreen;
+}
+
+void ImageViewer::setFullscreen(bool fs)
+{
+    fullscreen = fs;
+}
+
+json ImageViewer::toJson() const
+{
+    json j = Widget::toJson();
+    j["type"] = "imageviewer";
+    j["width"] = bounds.width;
+    j["height"] = bounds.height;
+    j["tint"] = colorToJson(tint);
+    const char* fitNames[] = {"stretch", "contain", "cover"};
+    j["fit"] = fitNames[static_cast<int>(fit)];
+
+    json paths = json::array();
+    for (auto& img : images)
+    {
+        paths.push_back(img.path);
+    }
+    j["images"] = paths;
+    j["current_index"] = currentIndex;
+
+    return j;
+}
+
 // ====================== RichTextBox ======================
 
 RichTextBox::RichTextBox()
