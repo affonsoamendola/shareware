@@ -2,9 +2,14 @@
 
 #include "raylib.h"
 
-extern int VIRTUAL_W;
-extern int VIRTUAL_H;
-extern float PIXEL_SCALE;
+struct RenderContext
+{
+    int virtual_w = 960;
+    int virtual_h = 540;
+    float pixel_scale = 2.0f;
+};
+
+extern RenderContext g_render;
 
 Vector2 GetVirtualMousePos();
 int GetVirtualScreenWidth();

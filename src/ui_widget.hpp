@@ -174,7 +174,6 @@ private:
 
     void handleInput();
     void handleToolbarClick();
-    void ensureValidCursor() const;
     void clampCursor() const;
 
     void insertChar(char c);

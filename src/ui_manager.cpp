@@ -340,6 +340,14 @@ const std::string& UIManager::getCurrentScreenName()
     return current_screen;
 }
 
+void UIManager::setCurrentScreenImmediate(const std::string& screenName)
+{
+    if (!screens.count(screenName)) return;
+    current_screen = screenName;
+    transition = TransitionType::None;
+    transition_alpha = 0.0f;
+}
+
 bool UIManager::isTransitioning()
 {
     return transition != TransitionType::None;

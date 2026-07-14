@@ -1,6 +1,7 @@
 #include "ui_screen.hpp"
 #include "font_manager.hpp"
 #include "pixel_scale.hpp"
+#include "image_utils.hpp"
 
 Screen::Screen(const std::string& name_) : name(name_) {}
 
@@ -23,34 +24,12 @@ void Screen::draw(FontManager& fonts)
 
     if (background_texture_loaded)
     {
-        float texW = (float)background_texture.width;
-        float texH = (float)background_texture.height;
         float bw = (float)GetVirtualScreenWidth();
         float bh = (float)GetVirtualScreenHeight();
-        float srcX = 0, srcY = 0, srcW = texW, srcH = texH;
-        float dstX = 0, dstY = 0, dstW = bw, dstH = bh;
-
-        if (background_fit == ImageFit::Contain)
-        {
-            float scale = (bw / texW < bh / texH) ? bw / texW : bh / texH;
-            dstW = texW * scale;
-            dstH = texH * scale;
-            dstX = (bw - dstW) / 2.0f;
-            dstY = (bh - dstH) / 2.0f;
-        }
-        else if (background_fit == ImageFit::Cover)
-        {
-            float scale = (bw / texW > bh / texH) ? bw / texW : bh / texH;
-            srcX = texW / 2.0f - bw / (2.0f * scale);
-            srcY = texH / 2.0f - bh / (2.0f * scale);
-            srcW = bw / scale;
-            srcH = bh / scale;
-        }
-
-        DrawTexturePro(background_texture,
-            {srcX, srcY, srcW, srcH},
-            {dstX, dstY, dstW, dstH},
-            {0, 0}, 0.0f, WHITE);
+        auto r = computeImageFit(
+            (float)background_texture.width, (float)background_texture.height,
+            0, 0, bw, bh, background_fit);
+        DrawTexturePro(background_texture, r.src, r.dst, {0, 0}, 0.0f, WHITE);
     }
 
     for (auto& widget : widgets) 

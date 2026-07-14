@@ -4,24 +4,22 @@
 #include "pixel_scale.hpp"
 #include <string>
 
-int VIRTUAL_W = 0;
-int VIRTUAL_H = 0;
-float PIXEL_SCALE = 2.0f;
+RenderContext g_render;
 
 Vector2 GetVirtualMousePos()
 {
     Vector2 m = GetMousePosition();
-    return { m.x / PIXEL_SCALE, m.y / PIXEL_SCALE };
+    return { m.x / g_render.pixel_scale, m.y / g_render.pixel_scale };
 }
 
 int GetVirtualScreenWidth()
 {
-    return VIRTUAL_W;
+    return g_render.virtual_w;
 }
 
 int GetVirtualScreenHeight()
 {
-    return VIRTUAL_H;
+    return g_render.virtual_h;
 }
 
 int main(int argc, char** argv)
@@ -31,10 +29,10 @@ int main(int argc, char** argv)
     ToggleFullscreen();
     SetTargetFPS(60);
 
-    VIRTUAL_W = 960;
-    VIRTUAL_H = 540;
+    g_render.virtual_w = 960;
+    g_render.virtual_h = 540;
 
-    RenderTexture2D target = LoadRenderTexture(VIRTUAL_W, VIRTUAL_H);
+    RenderTexture2D target = LoadRenderTexture(g_render.virtual_w, g_render.virtual_h);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
     UIManager ui;
@@ -109,7 +107,7 @@ int main(int argc, char** argv)
             {
                 ui.draw();
 
-                DrawText("Press E for editor", 10, VIRTUAL_H - 20, 10, DARKGRAY);
+                DrawText("Press E for editor", 10, g_render.virtual_h - 20, 10, DARKGRAY);
             }
         EndTextureMode();
 
@@ -118,11 +116,11 @@ int main(int argc, char** argv)
             {
                 float screenW = static_cast<float>(GetScreenWidth());
                 float screenH = static_cast<float>(GetScreenHeight());
-                float scale = screenH / static_cast<float>(VIRTUAL_H);
-                float renderW = static_cast<float>(VIRTUAL_W) * scale;
+                float scale = screenH / static_cast<float>(g_render.virtual_h);
+                float renderW = static_cast<float>(g_render.virtual_w) * scale;
                 float offsetX = (screenW - renderW) / 2.0f;
                 DrawTexturePro(target.texture,
-                    { 0, 0, static_cast<float>(VIRTUAL_W), static_cast<float>(-VIRTUAL_H) },
+                    { 0, 0, static_cast<float>(g_render.virtual_w), static_cast<float>(-g_render.virtual_h) },
                     { offsetX, 0, renderW, screenH },
                     { 0, 0 }, 0.0f, WHITE);
             }

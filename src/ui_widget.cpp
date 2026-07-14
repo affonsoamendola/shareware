@@ -1,6 +1,7 @@
 #include "ui_widget.hpp"
 #include "font_manager.hpp"
 #include "pixel_scale.hpp"
+#include "image_utils.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -246,34 +247,10 @@ void ImageWidget::draw(FontManager& fonts)
 
     if (textureLoaded)
     {
-        float texW = (float)texture.width;
-        float texH = (float)texture.height;
-        float bw = bounds.width;
-        float bh = bounds.height;
-        float srcX = 0, srcY = 0, srcW = texW, srcH = texH;
-        float dstX = bounds.x, dstY = bounds.y, dstW = bw, dstH = bh;
-
-        if (fit == ImageFit::Contain)
-        {
-            float scale = (bw / texW < bh / texH) ? bw / texW : bh / texH;
-            dstW = texW * scale;
-            dstH = texH * scale;
-            dstX = bounds.x + (bw - dstW) / 2.0f;
-            dstY = bounds.y + (bh - dstH) / 2.0f;
-        }
-        else if (fit == ImageFit::Cover)
-        {
-            float scale = (bw / texW > bh / texH) ? bw / texW : bh / texH;
-            srcX = texW / 2.0f - bw / (2.0f * scale);
-            srcY = texH / 2.0f - bh / (2.0f * scale);
-            srcW = bw / scale;
-            srcH = bh / scale;
-        }
-
-        DrawTexturePro(texture,
-            {srcX, srcY, srcW, srcH},
-            {dstX, dstY, dstW, dstH},
-            {0, 0}, 0.0f, tint);
+        auto r = computeImageFit(
+            (float)texture.width, (float)texture.height,
+            bounds.x, bounds.y, bounds.width, bounds.height, fit);
+        DrawTexturePro(texture, r.src, r.dst, {0, 0}, 0.0f, tint);
     }
     else
     {
@@ -363,21 +340,6 @@ bool RichTextBox::isToolbarVisible() const
     return toolbarVisible;
 }
 
-void RichTextBox::ensureValidCursor() const
-{
-    if (blocks.empty()) return;
-    if (cursorBlock < 0) cursorBlock = 0;
-    if (cursorBlock >= (int)blocks.size()) cursorBlock = (int)blocks.size() - 1;
-
-    auto& runs = blocks[cursorBlock].runs;
-    if (cursorRun < 0) cursorRun = 0;
-    if (cursorRun >= (int)runs.size()) cursorRun = (int)runs.size() - 1;
-
-    auto& text = runs[cursorRun].text;
-    if (cursorPos < 0) cursorPos = 0;
-    if (cursorPos > (int)text.size()) cursorPos = (int)text.size();
-}
-
 void RichTextBox::clampCursor() const
 {
     if (blocks.empty()) return;
@@ -397,7 +359,7 @@ void RichTextBox::clampCursor() const
 // Split current run at cursor, returns the run index after split
 void RichTextBox::splitRunAtCursor()
 {
-    ensureValidCursor();
+    clampCursor();
     auto& runs = blocks[cursorBlock].runs;
     auto& run = runs[cursorRun];
     int pos = cursorPos;
@@ -443,7 +405,7 @@ void RichTextBox::mergeAdjacentRuns()
 
 void RichTextBox::insertChar(char c)
 {
-    ensureValidCursor();
+    clampCursor();
     splitRunAtCursor();
     auto& runs = blocks[cursorBlock].runs;
     auto& run = runs[cursorRun];
@@ -454,7 +416,7 @@ void RichTextBox::insertChar(char c)
 
 void RichTextBox::deleteChar(bool forward)
 {
-    ensureValidCursor();
+    clampCursor();
     auto& runs = blocks[cursorBlock].runs;
 
     if (forward)
@@ -506,7 +468,7 @@ void RichTextBox::deleteChar(bool forward)
 
 void RichTextBox::backspace()
 {
-    ensureValidCursor();
+    clampCursor();
     auto& runs = blocks[cursorBlock].runs;
 
     if (cursorPos > 0)
@@ -541,7 +503,7 @@ void RichTextBox::backspace()
 
 void RichTextBox::insertNewline()
 {
-    ensureValidCursor();
+    clampCursor();
     splitRunAtCursor();
 
     RichTextBlock newBlock;
@@ -579,7 +541,7 @@ void RichTextBox::insertNewline()
 
 void RichTextBox::toggleBold()
 {
-    ensureValidCursor();
+    clampCursor();
     if (selBlock < 0)
     {
         auto& run = blocks[cursorBlock].runs[cursorRun];
@@ -591,7 +553,7 @@ void RichTextBox::toggleBold()
 
 void RichTextBox::toggleItalic()
 {
-    ensureValidCursor();
+    clampCursor();
     if (selBlock < 0)
     {
         auto& run = blocks[cursorBlock].runs[cursorRun];
@@ -603,7 +565,7 @@ void RichTextBox::toggleItalic()
 
 void RichTextBox::toggleUnderline()
 {
-    ensureValidCursor();
+    clampCursor();
     if (selBlock < 0)
     {
         auto& run = blocks[cursorBlock].runs[cursorRun];
@@ -615,7 +577,7 @@ void RichTextBox::toggleUnderline()
 
 void RichTextBox::toggleStrikethrough()
 {
-    ensureValidCursor();
+    clampCursor();
     if (selBlock < 0)
     {
         auto& run = blocks[cursorBlock].runs[cursorRun];
@@ -627,7 +589,7 @@ void RichTextBox::toggleStrikethrough()
 
 void RichTextBox::setBlockType(BlockType bt)
 {
-    ensureValidCursor();
+    clampCursor();
     blocks[cursorBlock].type = bt;
 }
 
@@ -692,7 +654,7 @@ void RichTextBox::updateContentHeight(Font* font)
 
 void RichTextBox::getCursorScreenPos(int& outX, int& outY, Font* font) const
 {
-    ensureValidCursor();
+    clampCursor();
     float fontSize = (float)font_size;
     float lineH = fontSize * lineHeight;
 

@@ -33,6 +33,8 @@ public:
     const std::string& getCurrentScreenName();
     bool isTransitioning();
 
+    void setCurrentScreenImmediate(const std::string& screenName);
+
     std::unordered_map<std::string, std::shared_ptr<Screen>>& getScreens();
     std::string& getInitialScreenRef();
     void addScreen(const std::string& name);

@@ -43,7 +43,24 @@ private:
     int textBufLen = 0;
     int actionBufLen = 0;
     int screenNameBufLen = 0;
-    int activeField = -1; // which text field is focused
+    enum class Field
+    {
+        None = -1,
+        WidgetText = 0,
+        ActionValue = 1,
+        FontPath = 2,
+        FontPreview = 3,
+        BgImagePath = 4,
+        ScreenName = 5,
+        PosX = 10,
+        PosY = 11,
+        ColorR = 20,
+        ColorG = 21,
+        ColorB = 22,
+        ColorA = 23,
+        RichTextContent = 30,
+    };
+    Field activeField = Field::None;
     int textCursorPos = 0; // cursor position within active text field
 
     int editFontSize = 20;
@@ -70,6 +87,9 @@ private:
     char bgImgPathBuf[512] = "";
     int bgImgPathBufLen = 0;
     int editBgFitIndex = 0;
+
+    // Screen background color fields
+    int editBgColorR = 245, editBgColorG = 245, editBgColorB = 245, editBgColorA = 255;
 
     // RichTextBox editing
     char mdContentBuf[8192] = "";
@@ -152,7 +172,6 @@ private:
     bool textBox(Rectangle rec, char* buf, int bufSize, int& len, bool active, bool multiline = false);
     void colorPicker(const char* label, int& r, int& g, int& b, int& a, int id, float& py);
 
-    Color colorToEdit(int r, int g, int b, int a);
     int textBoxClickPos(Rectangle rec, const char* buf, int len, Vector2 mouse, bool multiline);
     int textBoxCursorLine(const char* buf, int pos);
     int textBoxCursorX(const char* buf, int lineStart, int pos);
