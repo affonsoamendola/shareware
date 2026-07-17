@@ -737,6 +737,8 @@ void UIEditor::update(float dt)
     if (!editorMode) return;
 
     Screen* screen = getCurrentScreen();
+    g_view.offset = canvasPan;
+    g_view.scale = canvasZoom;
     if (screen)
     {
         screen->update(dt);
@@ -807,8 +809,8 @@ void UIEditor::update(float dt)
 
     if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_E)) { toggle(); return; }
     if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_D)) duplicateSelectedWidget();
-    if (IsKeyPressed(KEY_DELETE)) deleteSelectedWidget();
     if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_I)) uiManager.getInitialScreenRef() = editingScreenName;
+    if (IsKeyPressed(KEY_G)) snapToGrid = !snapToGrid;
 
     if (showFontPanel && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
@@ -866,8 +868,11 @@ void UIEditor::update(float dt)
             float newH = mouseCanvasY - selectedWidget->getPosition().y;
             if (newW < 30) newW = 30;
             if (newH < 15) newH = 15;
-            newW = roundf(newW / GRID_SIZE) * GRID_SIZE;
-            newH = roundf(newH / GRID_SIZE) * GRID_SIZE;
+            if (snapToGrid)
+            {
+                newW = roundf(newW / GRID_SIZE) * GRID_SIZE;
+                newH = roundf(newH / GRID_SIZE) * GRID_SIZE;
+            }
             editWidth = newW;
             editHeight = newH;
             snprintf(wBuf, sizeof(wBuf), "%.0f", editWidth);
@@ -890,8 +895,11 @@ void UIEditor::update(float dt)
         {
             float newX = mouseCanvasX - dragOffset.x;
             float newY = mouseCanvasY - dragOffset.y;
-            newX = roundf(newX / GRID_SIZE) * GRID_SIZE;
-            newY = roundf(newY / GRID_SIZE) * GRID_SIZE;
+            if (snapToGrid)
+            {
+                newX = roundf(newX / GRID_SIZE) * GRID_SIZE;
+                newY = roundf(newY / GRID_SIZE) * GRID_SIZE;
+            }
             if (newX < 0) newX = 0;
             if (newY < 0) newY = 0;
             editX = newX;
@@ -1026,6 +1034,13 @@ void UIEditor::drawToolbar()
 
     if (button({x, 4, 55, 32}, "Fonts", {100, 80, 120, 255}))
         showFontPanel = !showFontPanel;
+    x += 60;
+
+    const char* snapLabel = snapToGrid ? "Snap: ON" : "Snap: OFF";
+    Color snapColor = snapToGrid ? (Color){60, 130, 70, 255} : (Color){130, 60, 60, 255};
+    if (button({x, 4, 75, 32}, snapLabel, snapColor))
+        snapToGrid = !snapToGrid;
+    x += 80;
 
     // Save
     if (button({w - 80, 4, 72, 32}, "SAVE", {140, 100, 40, 255}))
@@ -1084,11 +1099,11 @@ void UIEditor::drawScreenList()
                  10, static_cast<int>(y), 11, LIGHTGRAY);
 
         y += 20;
-        DrawText("[DEL] delete", 10, static_cast<int>(y), 10, GRAY);
-        y += 14;
         DrawText("[CTRL+D] dup", 10, static_cast<int>(y), 10, GRAY);
         y += 14;
         DrawText("[E] toggle", 10, static_cast<int>(y), 10, GRAY);
+        y += 14;
+        DrawText("[G] snap toggle", 10, static_cast<int>(y), 10, GRAY);
         y += 14;
         DrawText("[CTRL+I] set init", 10, static_cast<int>(y), 10, GRAY);
         y += 16;
@@ -1147,15 +1162,18 @@ void UIEditor::drawCanvas()
 
     DrawRectangle(0, 0, static_cast<int>(canvasW), static_cast<int>(canvasH), {20, 20, 25, 255});
 
-    for (float gx = 0; gx < canvasW; gx += GRID_SIZE)
+    if (snapToGrid)
     {
-        DrawLine(static_cast<int>(gx), 0, static_cast<int>(gx), static_cast<int>(canvasH),
-                 {35, 35, 40, 255});
-    }
-    for (float gy = 0; gy < canvasH; gy += GRID_SIZE)
-    {
-        DrawLine(0, static_cast<int>(gy), static_cast<int>(canvasW), static_cast<int>(gy),
-                 {35, 35, 40, 255});
+        for (float gx = 0; gx < canvasW; gx += GRID_SIZE)
+        {
+            DrawLine(static_cast<int>(gx), 0, static_cast<int>(gx), static_cast<int>(canvasH),
+                     {35, 35, 40, 255});
+        }
+        for (float gy = 0; gy < canvasH; gy += GRID_SIZE)
+        {
+            DrawLine(0, static_cast<int>(gy), static_cast<int>(canvasW), static_cast<int>(gy),
+                     {35, 35, 40, 255});
+        }
     }
 
     Screen* currentScreen = getCurrentScreen();

@@ -8,11 +8,11 @@
 #include <cctype>
 
 // Widget base
-void Widget::update(float dt) 
+void Widget::update(float dt)
 {
     if (!visible || !enabled) return;
 
-    Vector2 mouse = GetVirtualMousePos();
+    Vector2 mouse = GetCanvasMousePos();
     hovered = CheckCollisionPointRec(mouse, bounds);
     pressed = hovered && IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     clicked = hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
@@ -515,7 +515,7 @@ void ImageViewer::update(float dt)
     }
 
     hoveredButton = -1;
-    Vector2 mouse = GetVirtualMousePos();
+    Vector2 mouse = GetCanvasMousePos();
 
     float btnSize = 28.0f;
     float btnY = bounds.y + bounds.height - btnSize - 4.0f;

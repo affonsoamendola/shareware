@@ -5,11 +5,19 @@
 #include <string>
 
 RenderContext g_render;
+ViewTransform g_view;
 
 Vector2 GetVirtualMousePos()
 {
     Vector2 m = GetMousePosition();
     return { m.x / g_render.pixel_scale, m.y / g_render.pixel_scale };
+}
+
+Vector2 GetCanvasMousePos()
+{
+    Vector2 m = GetVirtualMousePos();
+    return { (m.x - g_view.offset.x) / g_view.scale,
+             (m.y - g_view.offset.y) / g_view.scale };
 }
 
 int GetVirtualScreenWidth()

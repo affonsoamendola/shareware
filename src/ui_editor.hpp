@@ -19,6 +19,7 @@ public:
 private:
     UIManager& uiManager;
     bool editorMode = false;
+    bool snapToGrid = true;
 
     // Selection
     int selectedWidgetIndex = -1;
