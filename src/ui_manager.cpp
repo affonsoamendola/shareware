@@ -173,6 +173,19 @@ void UIManager::parseScreen(const std::string& name, const json& data) {
         screen->setPatternTileSize(data["bg_pattern_tile_size"].get<int>());
     }
 
+    if (data.contains("bg_scroll_direction"))
+    {
+        std::string dir = data["bg_scroll_direction"].get<std::string>();
+        if (dir == "horizontal") screen->setScrollDirection(BgScrollDirection::Horizontal);
+        else if (dir == "vertical") screen->setScrollDirection(BgScrollDirection::Vertical);
+        else if (dir == "diagonal") screen->setScrollDirection(BgScrollDirection::Diagonal);
+        else screen->setScrollDirection(BgScrollDirection::None);
+    }
+    if (data.contains("bg_scroll_speed"))
+    {
+        screen->setScrollSpeed(data["bg_scroll_speed"].get<float>());
+    }
+
     if (data.contains("widgets")) 
     {
         for (auto& widgetData : data["widgets"]) 

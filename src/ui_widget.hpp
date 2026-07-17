@@ -200,11 +200,6 @@ public:
     std::string toMarkdown() const;
     void fromMarkdown(const std::string& md);
 
-    bool isFocused() const;
-    void setFocused(bool f);
-
-    bool isToolbarVisible() const;
-
     void toggleBold();
     void toggleItalic();
     void toggleUnderline();
@@ -213,7 +208,6 @@ public:
     void setTextAlign(TextAlign align);
 
     std::vector<RichTextBlock> blocks;
-    bool interactive = false;
     Color bgColor = {30, 30, 40, 255};
     Color borderColor = {80, 80, 100, 255};
     Color cursorColor = WHITE;
@@ -224,10 +218,6 @@ public:
     TextAlign textAlign = TextAlign::Left;
 
 private:
-    bool focused = false;
-    bool toolbarVisible = false;
-    float toolbarHeight = 28.0f;
-
     mutable int cursorBlock = 0;
     mutable int cursorRun = 0;
     mutable int cursorPos = 0;
@@ -238,14 +228,9 @@ private:
 
     float scrollY = 0.0f;
     float contentHeight = 0.0f;
-    float lastClickTime = 0.0f;
     Font* cachedFont = nullptr;
 
-    char inputBuf[4096] = "";
-    int inputBufLen = 0;
-
     void handleInput();
-    void handleToolbarClick();
     void clampCursor() const;
 
     void insertChar(char c);
@@ -262,12 +247,5 @@ private:
     void getCursorScreenPos(int& outX, int& outY, Font* font) const;
     void updateContentHeight(Font* font);
 
-    void drawToolbarInternal(FontManager& fonts);
-    void drawSelectionHighlight(Font* font);
-    void drawCursorLine(Font* font);
     void drawBlocks(FontManager& fonts);
-
-    bool isInContentArea(Vector2 m) const;
-    bool isInToolbarArea(Vector2 m) const;
-    void clickToPosition(Vector2 m, Font* font);
 };

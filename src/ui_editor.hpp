@@ -118,6 +118,10 @@ private:
     int editPatColorBR = 180, editPatColorBG = 100, editPatColorBB = 0, editPatColorBA = 255;
     int editPatTileSize = 64;
 
+    // Screen background scroll fields
+    int editScrollDirIndex = 0;
+    int editScrollSpeed = 60;
+
     // RichTextBox editing
     char mdContentBuf[8192] = "";
     int mdContentBufLen = 0;
@@ -125,6 +129,7 @@ private:
     float rtbLineSpacing = 1.4f;
     int rtbPadding = 8;
     int rtbTextAlign = 0;
+    int editRtbBgR = 30, editRtbBgG = 30, editRtbBgB = 40, editRtbBgA = 255;
 
     // ImageViewer editing
 

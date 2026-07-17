@@ -71,6 +71,9 @@ void UIEditor::drawRichTextBoxProperties(float& positionY, float labelX, float i
     }
     positionY += 20;
 
+    colorPicker("BG Color:", editRtbBgR, editRtbBgG, editRtbBgB, editRtbBgA, 10, positionY);
+    positionY += 6;
+
     DrawText("-- Content (Markdown) --", static_cast<int>(labelX), static_cast<int>(positionY), 10, GRAY);
     positionY += 14;
     Rectangle mdRec = {labelX, positionY, controlW, MD_BOX_H};
@@ -320,6 +323,32 @@ void UIEditor::drawPropertyPanel()
                     screen->setPatternTileSize(editPatTileSize);
                 }
                 py += 20;
+
+                DrawText("Scroll Dir:", static_cast<int>(lx), static_cast<int>(py), 11, LIGHTGRAY);
+                {
+                    float controlW = iw + 55;
+                    float bw = controlW / 4;
+                    const char* dirLabels[] = {"None", "H", "V", "Diag"};
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Color bg = (editScrollDirIndex == i) ? (Color){70, 70, 130, 255} : (Color){50, 50, 60, 255};
+                        if (button({lx + i * bw, py, bw - 2, 16}, dirLabels[i], bg))
+                        {
+                            editScrollDirIndex = i;
+                            screen->setScrollDirection(static_cast<BgScrollDirection>(editScrollDirIndex));
+                        }
+                    }
+                }
+                py += 20;
+
+                if (editScrollDirIndex != 0)
+                {
+                    if (slider({lx, py, iw + 55, 16}, "Speed:", &editScrollSpeed, 10, 500))
+                    {
+                        screen->setScrollSpeed(static_cast<float>(editScrollSpeed));
+                    }
+                    py += 20;
+                }
             }
 
             DrawText("BG Image:", static_cast<int>(lx), static_cast<int>(py), 11, LIGHTGRAY);

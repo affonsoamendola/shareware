@@ -8,16 +8,18 @@ enum class BgPattern
     Checkerboard,
     HorizontalStripes,
     VerticalStripes,
-    DiagonalStripes,
     Dots,
     Diamonds,
-    Waves,
-    Zigzag,
-    Hexagons,
-    Brick,
     Plaid,
-    Noise,
     CrossHatch
+};
+
+enum class BgScrollDirection
+{
+    None = 0,
+    Horizontal,
+    Vertical,
+    Diagonal
 };
 
 const char* bgPatternName(BgPattern p);
@@ -31,4 +33,6 @@ void drawBackgroundPattern(
     Color colorB,
     int tileSize,
     int screenW,
-    int screenH);
+    int screenH,
+    float offsetX = 0.0f,
+    float offsetY = 0.0f);

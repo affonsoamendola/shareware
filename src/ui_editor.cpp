@@ -36,17 +36,6 @@ void UIEditor::toggle()
     }
     else
     {
-        // Reset all RichTextBox interactivity when leaving editor
-        Screen* screen = getCurrentScreen();
-        if (screen)
-        {
-            for (auto& w : screen->getWidgets())
-            {
-                if (w->getType() == WidgetType::RichTextBox)
-                    static_cast<RichTextBox*>(w.get())->interactive = false;
-            }
-        }
-
         uiManager.setCurrentScreenImmediate(editingScreenName);
     }
 }
@@ -73,27 +62,12 @@ Widget* UIEditor::getSelectedWidget()
 
 void UIEditor::selectWidget(int index)
 {
-    // Disable interactive on previously selected RichTextBox
-    Widget* old = getSelectedWidget();
-    if (old && old->getType() == WidgetType::RichTextBox)
-        static_cast<RichTextBox*>(old)->interactive = false;
-
     selectedWidgetIndex = index;
-
-    // Enable interactive on newly selected RichTextBox
-    Widget* now = getSelectedWidget();
-    if (now && now->getType() == WidgetType::RichTextBox)
-        static_cast<RichTextBox*>(now)->interactive = true;
-
     syncPropsFromSelected();
 }
 
 void UIEditor::deselectWidget()
 {
-    Widget* w = getSelectedWidget();
-    if (w && w->getType() == WidgetType::RichTextBox)
-        static_cast<RichTextBox*>(w)->interactive = false;
-
     selectedWidgetIndex = -1;
     textBuf[0] = '\0';
     actionBuf[0] = '\0';
@@ -132,6 +106,9 @@ void UIEditor::deselectWidget()
         Color pb = screen->getPatternColorB();
         editPatColorBR = pb.r; editPatColorBG = pb.g; editPatColorBB = pb.b; editPatColorBA = pb.a;
         editPatTileSize = screen->getPatternTileSize();
+
+        editScrollDirIndex = static_cast<int>(screen->getScrollDirection());
+        editScrollSpeed = static_cast<int>(screen->getScrollSpeed());
     }
     else
     {
@@ -237,6 +214,10 @@ void UIEditor::syncPropsFromSelected()
         rtbLineSpacing = rtb->lineHeight;
         rtbPadding = rtb->padding;
         rtbTextAlign = static_cast<int>(rtb->textAlign);
+        editRtbBgR = rtb->bgColor.r;
+        editRtbBgG = rtb->bgColor.g;
+        editRtbBgB = rtb->bgColor.b;
+        editRtbBgA = rtb->bgColor.a;
     }
 
     if (widget->getType() == WidgetType::ImageViewer)
@@ -337,6 +318,10 @@ void UIEditor::applyPropsToSelected()
         rtb->lineHeight = rtbLineSpacing;
         rtb->padding = rtbPadding;
         rtb->textAlign = static_cast<TextAlign>(rtbTextAlign);
+        rtb->bgColor.r = static_cast<unsigned char>(editRtbBgR);
+        rtb->bgColor.g = static_cast<unsigned char>(editRtbBgG);
+        rtb->bgColor.b = static_cast<unsigned char>(editRtbBgB);
+        rtb->bgColor.a = static_cast<unsigned char>(editRtbBgA);
     }
 
     if (widget->getType() == WidgetType::ImageViewer)
@@ -750,6 +735,12 @@ void UIEditor::commitActiveField()
 void UIEditor::update(float dt)
 {
     if (!editorMode) return;
+
+    Screen* screen = getCurrentScreen();
+    if (screen)
+    {
+        screen->update(dt);
+    }
 
     float scrollWheel = GetMouseWheelMove();
     if (scrollWheel != 0.0f)
@@ -1180,7 +1171,8 @@ void UIEditor::drawCanvas()
             currentScreen->getPatternColorA(),
             currentScreen->getPatternColorB(),
             currentScreen->getPatternTileSize(),
-            static_cast<int>(canvasW - 2), static_cast<int>(canvasH - 2));
+            static_cast<int>(canvasW - 2), static_cast<int>(canvasH - 2),
+            currentScreen->getScrollOffsetX(), currentScreen->getScrollOffsetY());
     }
 
     if (currentScreen->hasBackgroundImage())

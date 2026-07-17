@@ -13,6 +13,16 @@ void Screen::addWidget(std::shared_ptr<Widget> widget_)
 
 void Screen::update(float dt) 
 {
+    if (scroll_direction != BgScrollDirection::None)
+    {
+        if (scroll_direction == BgScrollDirection::Horizontal ||
+            scroll_direction == BgScrollDirection::Diagonal)
+            scroll_offset_x += scroll_speed * dt;
+        if (scroll_direction == BgScrollDirection::Vertical ||
+            scroll_direction == BgScrollDirection::Diagonal)
+            scroll_offset_y += scroll_speed * dt;
+    }
+
     for (auto& widget : widgets) 
     {
         widget->update(dt);
@@ -26,7 +36,8 @@ void Screen::draw(FontManager& fonts)
     if (bg_pattern != BgPattern::None)
     {
         drawBackgroundPattern(bg_pattern, pattern_color_a, pattern_color_b,
-            pattern_tile_size, GetVirtualScreenWidth(), GetVirtualScreenHeight());
+            pattern_tile_size, GetVirtualScreenWidth(), GetVirtualScreenHeight(),
+            scroll_offset_x, scroll_offset_y);
     }
 
     if (background_texture_loaded)
@@ -164,6 +175,36 @@ int Screen::getPatternTileSize() const
     return pattern_tile_size;
 }
 
+void Screen::setScrollDirection(BgScrollDirection dir)
+{
+    scroll_direction = dir;
+}
+
+BgScrollDirection Screen::getScrollDirection() const
+{
+    return scroll_direction;
+}
+
+void Screen::setScrollSpeed(float speed)
+{
+    scroll_speed = speed;
+}
+
+float Screen::getScrollSpeed() const
+{
+    return scroll_speed;
+}
+
+float Screen::getScrollOffsetX() const
+{
+    return scroll_offset_x;
+}
+
+float Screen::getScrollOffsetY() const
+{
+    return scroll_offset_y;
+}
+
 std::vector<std::shared_ptr<Widget>>& Screen::getWidgets()
 {
     return widgets;
@@ -193,6 +234,12 @@ json Screen::toJson() const
         j["bg_pattern_color_a"] = {pattern_color_a.r, pattern_color_a.g, pattern_color_a.b, pattern_color_a.a};
         j["bg_pattern_color_b"] = {pattern_color_b.r, pattern_color_b.g, pattern_color_b.b, pattern_color_b.a};
         j["bg_pattern_tile_size"] = pattern_tile_size;
+    }
+    if (scroll_direction != BgScrollDirection::None)
+    {
+        const char* dirNames[] = {"none", "horizontal", "vertical", "diagonal"};
+        j["bg_scroll_direction"] = dirNames[static_cast<int>(scroll_direction)];
+        j["bg_scroll_speed"] = scroll_speed;
     }
     json widgetsArr = json::array();
     for (auto& widget : widgets)

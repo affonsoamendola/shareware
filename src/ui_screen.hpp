@@ -44,6 +44,13 @@ public:
     void setPatternTileSize(int size);
     int getPatternTileSize() const;
 
+    void setScrollDirection(BgScrollDirection dir);
+    BgScrollDirection getScrollDirection() const;
+    void setScrollSpeed(float speed);
+    float getScrollSpeed() const;
+    float getScrollOffsetX() const;
+    float getScrollOffsetY() const;
+
     std::vector<std::shared_ptr<Widget>>& getWidgets();
     void removeWidget(size_t index);
 
@@ -69,4 +76,8 @@ private:
     Color pattern_color_a = {255, 165, 0, 255};
     Color pattern_color_b = {180, 100, 0, 255};
     int pattern_tile_size = 64;
+    BgScrollDirection scroll_direction = BgScrollDirection::None;
+    float scroll_speed = 60.0f;
+    float scroll_offset_x = 0.0f;
+    float scroll_offset_y = 0.0f;
 };
